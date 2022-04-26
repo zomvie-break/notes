@@ -1,0 +1,1329 @@
+#+TITLE: Using Python to interact with the Operating System
+#+AUTHOR: VICTOR M. VAQUERO
+
+* Useful Links
+https://automatetheboringstuff.com/
+https://docs.python-guide.org/
+https://docs.python.org/3/reference/index.html
+https://regex101.com/
+https://regexcrossword.com
+* Week 1: Getting your Python On
+** Getting ready for python
+Operating system: The software that manages everything that goes on in the computer.
+
+Linux itself is the name of the kernel originally developed by Linus Torvalds. We typically use Linux to refer both the kernel and the operating system.
+
+Unix is an operating system developed back in the 70's by Bell Labs. The fundamental ideas of how Linux works today are based on the Unix principles. A lot of the tools that we use to interact with the operating system are open source versions of those originally developed for Unix. So basically Linus developed Linux which is based on Unix. Mac OS' kernel and some of its user space are also based on BSD (from the Unix family).
+
+Python is cross-platform.
+
+PyPI (python package index) is a repository of software for the Python programming language.
+
+_tip_
+The PATH variable instructs the operating system to look for executables and certain directories of our system when running commands from the terminal.
+
+_module tips_
+use 'arrow' module when working with dates.
+use 'requests' to interact with web services.
+use 'PIL' (pyhton imaging libray) to manipulate images.
+use 'panda' for data processing.
+
+*** parts of the operating system
+- Kernel: Main core of the operating system: it talks directly to our hardware and manages our system's resources.
+  - System's resources, memory, network, disk.
+- User space. We do not interact with the kernel directly. We interact with the user space which is basically everything outside of the kernel.
+  - system's programs and user interface.
+** Running Python locally
+*** Interpreted vs. compiled languages
+Compiled languages examples: C, C++, Go, Rust.
+Compiled languages are fast but can take some time to compile. In compiled languages, the source code is fed into a compiler which translates it into machine level language.
+
+Interpreted languages examples: python, ruby, JavaScript, bash, PowerShell.
+Interpreted languages rely on a interpreter which is a program that execute the instructions specified in the code rather than running them through a compiler. Trade-off, interpreted languages usually run slower than compiled ones.
+
+Java and C# use a mixed approach, the code gets compiled first but into intermediate code, not into machine language (which is dependent on the OS in which was compiled), so that it can be run in another platform using another program (Java virtual machine for java and common language runtime for C#).
+
+The python interpreter itself is a compiled executable which is platform specific but once you have it install, you can run your scripts everywhere.
+
+_PRO TIP_
+Instead of writing "$ python3 ./hello_world.py" to run the program, you can use a "shebang". A Shebang will tell the OS which comand we want to use to execute that script. A shebang line needs to be at the beginning of the file and looks like this:
+"#!/usr/bin/env python3" # if running a virtual environment, venv, the python interpreter is in another directory. This should look like "#!/dir/to/venv/bin/python3"
+Afterwards, we make the file executable, to do so use:
+"$ chmod +x hello_world.py"
+and the file can be run using "$ ./hello_world.py". The "./" is needed because the script is not located in any of the directories listed on the PATH variable. This variable tells the OS where to find programs to execute. The dot in the "./" slash means "current directory".
+
+*** Modules
+Write modules instead of copy/paste code. Fix bugs and modify the code in a single place. To use a module, import it using the file name. You can access each function, class, and variable using dot notation. E.g.
+import areas
+areas.triangle(5,4)
+
+You can use the import command to import any module located in the PATH directory. You can also use import to assign a localName variable to the imported module (not sure what that means, tho).
+
+_tip_
+For projects that are more complex, you can create a director (which becomes the name of the module) and separate .py files for each sub-module. For a directory to be recognized by python as a module, you need to create a __init__.py file in the directory (you can leave it empty but it is important to be there).
+
+You can take a look at the modules/submodules in the PATH directory. E.g. "$ ls -al /usr/lib/python3/dist-packages/requests"
+*** Automating Tasks Through Programming
+**** Benefits of automation
+Automating tasks allows the IT infrastructure to scale, keeping pace with growth and demand.
+
+Scalability: When more work is added to a system, the system can do whatever it needs to complete the work.
+
+Automation can make a repetitive time-consuming task faster and more reliable while also freeing up human resources allowing IT specialist to focus on more strategic and creative work.
+
+Another subtle benefit of automation is that it can centralize mistakes, which means that if you find an error in a script, you can fix the error once and for all.
+**** Pitfalls of automation
+- Is the time and effort it'll take to write the script worth the potential automation benefits?
+
+General rule for deciding to automate or not:
+[time-to-automate < (time-to-perform * amount-of-times-done)]
+
+Keep in mind that once a task is wrapped in automation, anyone can do it. It can be very useful to automate a complex error prone task.
+
+Existing automation can be fragile. If the system changes and the automation is not updated accordingly, workflows can break.
+
+Bit-rot: The process of software falling out of step with the environment.
+
+If an automated system fails, the consequences can be really bad. To prevent this, implement a *notification system*, this way, if the automation fails, a human can go investigate. This notification can be an email, an entry on an issue tracker, update dashboard, or even a page for the person who's on call for the service.
+
+Even worse than an automation failure, is when the automation succeeds but performs the wrong action. Good automation will make debugging easier by logging in the action it takes. Our scripts can also be configured to write to the system log, doing this creates an audit trail of useful troubleshooting information.
+
+"Automation, it's an incredibly powerful tool that saves time, reduces mistakes, and facilitates growth and scalability. But we need to apply it thoughtfully to avoid some of the pitfalls that can arise from its use."
+
+_Pareto Principle_
+20% of the system administration tasks that you perform are responsible for 80% of your work. Try to automate those 20% of the tasks.
+**** Practical automation example
+Call a health report on your computer. This requires a lot of checks:
+- verify that there is enough disk space.
+- verify that the processor isn't overloaded.
+- verify that it has the latest security updates.
+- verify that it's running the services that it is supposed to.
+
+Eg. disk usage
+import shutil
+du = shutil.disk_usage("/")
+print(du)
+
+Eg. cpu usage
+import psutil
+psutil.cpu_percentage(0.5)
+* Week 2: Managing files with python
+** Reading and writing files
+Mac Os, Windows, and Linux use file systems to organize and control how data is stored and access.
+
+" Data is usually stored on a disk and saved in files which are held in containers called directories or folders. File systems are usually organized in a tree structure with directories and files nested under their parents." The location of the file or directory is indicated by the path (e.g. /home/victor/documents/cat.jpg <- this is an absolute path) (relative directories depend on your current working directory)
+
+When Managing large chunks of data, it is a good idea to read that data from files. To do this in python, use:
+~file = open("spider.txt")~
+When opening a file, the OS checks if you have permission to access the file and then gives your code a file descriptor. In python, this file descriptor is stored as an attribute of the file object. The file object gives you a bunch of methods that can be used to operate with the file.
+
+*** Useful methods when reading files
+file.readline() -> this will read one line of the file, from the current location in the file, to the end of the line.
+file.read() -> this will read the file from the current location to the end of the file.
+file.close() -> It is a good idea to close the file for a number of reasons.
+1. While in use, the file system locks down the file so no other program or scripts can use it until you are finished.
+2. There is a limited number of file descriptors that you can create before the file system runs out of them. You can deplete your file system resources (e.g. opening files in a loop).
+3. Leaving open files can lead to race conditions (occurs when multiple processes try to modify and read from one resource at the same time and can cause unexpected behavior)
+
+   To overcome this problem, open files with the keyword 'with' like this:
+   with open('spider.txt') as file:
+       print(file.readline())
+*** Iterating through files
+File objects can be iterated in the same way as python sequences (i.e. lists or strings).
+
+with open('spider.txt') as file:
+    for line in file:
+        print(line.strip().upper())
+
+In this example, the line is stripped of whitespaces at the end of each line, that's because there are new line characters in the file at the end of each line (and print() also generates a new line)
+
+We can also read the file lines into a list. E.g.
+file = open('spider.txt')
+lines = file.readlines()
+file.close()
+lines.sort()
+
+This will create a sorted list out of the lines in the file.
+
+_Tip_
+to display a character that is not printable, python uses '\' such as '\n' or '\t' for new line and tab, respectively. These are called escape sequences. We can also use '\'' or '\"' to print quotes on the text.
+
+_Tip_
+for small files, it is okay to read the whole file in python, but for large files, this can really affect performance. In large files, it is better to read them line by line.
+*** Writing files
+To write into a file:
+
+with open("novel.txt", "w") as file:
+    file.write("It was a dark and stormy")
+
+Here, the file is being open in write mode, "w". By default, a file is open in reading mode, "r".
+
+| mode | description                                      |
+| "w"  | write mode                                       |
+| "r"  | read mode                                        |
+| "a"  | append mode (add content at the end of the file) |
+| "r+" | read-write mode                                  |
+| "x"  | create new file, fail if exists.                 |
+
+*IMPORTANT*
+If you open a file for writing and the file already exists, the old contents will be deleted as soon as the file is opened.
+** Managing files and directories
+*** Working with files
+We may need to rename, delete, or move files. Or get info about when was it last modified or its current size.
+
+For this, we need the 'os' module (~import os~). This provides a level of abstraction between python and the operating system (regardless if it is windows, mac os, or Linux). Paths can be *different* across different os's.
+
+We can change the permissions on a file using the os module.
+**** Methods in the os module
+Remove a file in the current directory.
+os.remove("novel.txt")
+
+Rename files.
+os.rename("old_name.txt", "new_name.txt")
+
+Check if the file exists (returns True or False).
+os.path.exists("file_name.pdf")
+
+Check the file size (in bytes).
+os.path.getsize("spider.txt")
+
+Check when the file was last modified (This returns a Unix timestamp, i.e. the number of seconds since January 1st, 1970). (That is because they started publishing Unix operating systems at that time.)
+os.path.getmtime("spider.txt")
+
+    We can use the datetime module to make sense of this Unix timestamp) like this:
+    import datetime
+    tstamp = os.path.getmtime('spider.txt')
+    datetime.datetime.fromtimestamp(tstamp)
+
+
+Return the absolute path of a file (it looks at the current working directory).
+os.path.abspath('spider')
+**** Methods for dealing with directories
+get the current working directory
+os.getcwd()
+
+create a new directory
+os.mkdir("name-of-new-dir")
+
+change to another directory (you can use realtive or absolute path)
+os.chdir("path_to_dir")
+
+remove directory (only if it is empty)
+os.rmdir('path_to_dir')
+
+returns a list of all the files and subdirectories in the path
+os.listdir('path_to_dir')
+
+check if the path is a directory
+os.isdir('path')
+
+join variable names to form a path (regardless of the platform)
+os.path.join('home', 'victor')
+this method will work on linux/mac os which use forward slash '/' and for windows which uses backslash '\'
+*** Reading and writing CSV files
+Parsing: Analyzing a file's content to correctly structure the data. Using rules to understand a file or datastream as structured data. File format (e.g. html, json, csv)
+**** reading CSV
+
+import csv
+f = open('csv_file.txt')
+csv_f = csv.reader(f) #used to read the f file as a CSV
+for row in csv_f:
+    #unpacking
+    name, phone, role = row
+
+In this example, 'row' is a list containing three elements which are unpacked in ~name, phone, role = row~
+Unpacking lists like this makes the code easier to understand.
+**** Methods for generating CSVs
+_Using Lists_
+import csv
+hosts = [ [ "workstation.local", "192.168.25.46"], ["webserver.cloud", "10.2.5.6"]]
+with open('hosts.csv', 'w') as hosts_csv:
+    writer = csv.writer(hosts_csv)
+    writer.writerows(hosts)
+
+In this example, you need the 'writer' instance of the csv writer class to write a CSV file. You can then use ~writerow(list)~ to write one row into the file or ~writerows(listoflist)~ to write multiple rows into the file.
+
+_Using Dictionaries_
+*Reading*
+When there are a lot of columns, it is better to use dictionaries. Otherwise it can be tricky to keep track of which is which.
+
+import csv
+with open('software.csv') as software:
+    reader = csv.DictReader(software)
+    for row in reader:
+        print(("{} has {} users").format(row["name"], row["users"]))
+
+Here, the file 'software.csv'  has headings including "name" and "users".
+
+*Writing*
+users = [{"name": "Victor", "username":"vicvic", "department":"IT"},{"name": "Fernanda", "username":"ferfer", "department":"marketing"]
+keys = ["name"m "usernam", "department"]
+with open('by_department.csv', 'w') as by_deparment:
+    writer = csv.DictWriter(by_deparment, fieldnames=keys)
+    writer.writeheader()
+    writer.writerows(users)
+
+In this example, 'users' is a list of directories, each directory is a row. We need a DictWriter instance from the csv module (in this case 'writer'). Then we can write the header (in this case, the keys) and then the actual rows (the dictionaries)
+
+* Week 3: Regular Expressions
+** Regular Expressions
+Regular Expressions are useful for finding and operation on text in a more flexible way.
+*** What are regular expressions?
+Also known as regex or regexp. Regular Expressions is basically a string query that is expressed by a string pattern. Anything that matches a regular expression pattern specified, is returned as a result of the search. In other words, regular expressions allows us to search a text for strings matching a specific pattern.
+
+Regular expressions can be useful for answering these type of questions:
+- What are all the four-letter words in a file?
+- How many different error types are there in this error log?
+
+Regex can be used in many programming languages, also in command some command line tools (e.g. grep, sed, awk) and some text/code editors.
+*** Why use regular expressions?
+Regexs are very flexible. E.g.
+
+import re
+log = "July 31 07:51:48 my computer bad_process[23415]: ERROR performing package upgrade"
+regex = r"\[(\d+)\]"
+result = re.search(regex, log)
+
+This code will output 23415, but the advantage is that it will return the number within the square brackets, regardless of the length of the string.
+
+*** Basic Matching with grep
+
+$ grep thon /path/to/file
+This command will search for all the sub-strings that contain 'thon' in it (case sensitive).
+
+$ grep -i thon /path/to/file
+In this case, the -i 1 is for finding the pattern regardless of the case.
+
+_tip_
+a '.' (dot) used in a regex is a wild card that can match any character. Eg.
+$ grep l.rts /path/to/file
+This will return results like 'alerts', 'blurts', 'flirts'.
+
+_tip_
+The caret or circumflex '^' indicates the beginning of the line while the dollar sign '$' indicates the end of the line (They are both known as anchor characters).
+$ grep ^fruit /path/to/file
+This query returns things like 'fruitcake', 'fruitfully', 'fruits'.
+$ grep cat$ /path/to/file
+Returns things like 'bobcat', 'copycat', 'wildcat'.
+** Basic Regular Expressions
+*** Simple Matching in Python
+import re
+result = re.search(r'aza', 'plaza')
+
+    The 'r' at the beginning of the pattern indicates that this is a 'rawstring' which mean that the python interpreter shouldn't try to interpret any special characters (just pass the string as is).
+
+    The result is a Match object which includes a span attribute which in turn indicates the location of the match. If nothing matches, 'None' is returned.
+
+We can make our query case insensitive like this:
+re.search(r'p.ng', "Pangea", re.IGNORECASE)
+
+_pro tip_
+*Always* use raw strings for regular expressions in Python.
+
+*** Wildcards and character classes
+
+Character classes are written inside square brackets and let us list the characters we want inside of those brackets.
+re.search(r'[Pp]ython', 'Python')
+
+To state any lower case letter, use [a-z]
+re.search(r'[a-z]way', "The end of the highway")
+    Finds match.
+re.search(r'[a-z]way', "What a way to go")
+    Does not find a match.
+
+There are other ranges like [A-Z], [0-9], [a-z]. We can specify many ranges like this:
+    re.search(r'cloud[a-zA-Z0-9]', 'cloudy')
+    re.search(r'cloud[a-zA-Z0-9]', 'cloud9')
+
+To match characters that are not in the group we use the circumflex inside the square brackets, '[^]'.
+    re.search(r'[^a-zA-Z]', "This is a sentence with spaces.")
+    This will match the first whitespace.
+    re.search(r'[^a-zA-Z ]', "This is a sentence with spaces.")
+    This will match the dot at the end.
+
+We can use the pipe symbol '|' to match either one expression or the other.
+     re.search(r'cat|dog', "I love cats.")
+     re.search(r'cat|dog', "I love dogs.")
+     re.search(r'cat|dog', "I love dogs and cats.")
+        This will only match 'dog'.
+
+We can use re.findall() to find all possible matches.
+    re.findall(r'cat|dog', "I like both dogs and cats.")
+*** Repetition Qualifiers
+**** ' * ' star
+re.search(r'Py.*n', 'Pygmalion')
+    In this example, you could think of this in plain english as "start with 'Py' followed my any character any amount of times followed by a 'n'"
+
+    The '*' in the regex means any amount of times.
+
+re.search(r'Py.*n', 'Python Programming')
+    Here, the search returns "Python Programmin". The '*' tales as many characters as possible. In programming terms, it is called 'greedy'.
+
+re.search(r'Py[a-z]*n', 'Python Programming')
+    Now, this regular expression will look for any string starting with 'Py' followed by any lower case letter any amount of times followed by a 'n'. This will match 'Python'.
+
+re.search(r'Py[a-z]*n', 'Pyn')
+    This search will return 'Pyn'.
+
+****  ' + ' plus
+The tool 'grep' only include one star (*) qualifiers which is usually good enough. 'egrep' and Python include two additional repetition qualifiers, '?' and '+'.
+
+' + ' character matches one or more occurrences of the character that comes before it.
+    re.search(r'o+l+', 'goldfish')
+        returns 'ol' as a match.
+    re.search(r'o+l+', 'woolly')
+        returns 'ooll' as a match.
+    In other words, in these examples, you can match as many 'o's (next to each other) as long as they are followed by a 'l'. And then as many 'l's as possible (next to each other). 'ooool' would be a match but not 'looo', 'ol' would be a match but not 'lo'   .
+**** ' ? ' question mark
+'?' matches zero or one occurrence of the character before it.
+    re.search(r'p?each'. 'To each their own')
+        this returns 'each' as a match since 'p' is not there.
+    re.search(r'p?each'. 'I like peaches')
+        this returns 'peach' since the 'p' is optional.
+
+*** Escaping Characters
+If you want to search for a character such as '[]^$*+?', you need to escape the character using the backslash like this: \. \^ \[ and so on...
+    re.search(r'\.com', 'mydomain.com')
+        This results in a match with '.com'
+
+When we see a pattern that includes a backslash, it could be escaping a special regex character or a special string character. Using raw strings (i.e. r'string here') helps with this confusion since special characters won't be interpreted when generating a string.
+
+In python '\w' matches letters, numbers, and underscores.
+    re.search(r'\w', 'this_is_an_example')
+        this returns 'this_is_an_exmaple'
+
+| symbol | function                              |
+| '\w'   | matches letters, numbers, underscores |
+| '\s'   | matches whitespace characters         |
+| '\d'   | matches digits                        |
+| '\b'   | matches word boundaries               |
+
+*** Regular expressions in action
+
+Example 1:
+    You want to find all the contries that start with A and end with a. To do this you want to use this regex.
+        re.search(r'^A.*a$', 'Azerbaijan') -> This does not match!
+        re.search(r'^A.*a$', 'Australia') -> This does match!
+
+Example 2:
+    You want to validate if the string is a valid name in python.
+        pattern = r'^[a-zA-Z_][a-zA-Z0-9]*$'
+        re.search(pattern, "_this_is_a_valid_variable_name") -> this is a valid variable name
+        re.search(pattern, "this is not a valid variable name") -> this is NOT a valid variable name
+
+** Advanced Regular Expressions
+*** Capturing groups
+Capturing groups: Portions of the pattern that are enclosed in parentheses.
+
+result = re.search(r'^(\w*), (\w*)$', 'Lovelace, Ada')
+print(result.groups()) -> returns a tuple: ('Lovelace','Ada')
+
+You can also access the groups (like a regular string) like this:
+result[0] -> 'Lovelace, Ada'
+result[1] -> 'Lovelace'
+result[2] -> 'Ada'
+*** More on repetition qualifiers
+Python offers numeric repetition qualifiers which are written between curly brackets and can be one or two numbers specifying a range.
+
+re.search(r'[a-zA-Z]{5}', 'a ghost')
+    This will return 'ghost'
+
+re.findall(r'[a-zA-Z]{5}', 'a scary ghost appeared')
+    This will return 'scary', 'ghost', 'appea'  since it still meets the query (five letters or more).
+
+'\b' matches word limits at the 1 and end of the pattern.
+    re.findall(r'\b[a-zA-Z]{5}\b', 'a scary ghost appeared')
+        This will return 'scary' and 'ghost'
+
+To find words that are between 5 and 10 characters long:
+    re.findall(r'\w{5,10}', 'I really like ghost stories')
+
+But they can also be open ended (a number followed by a coma). This means that at least that many repetitions with no upper boundaries.
+    re.findall(r'\w{5,}', 'I really like ghost stories')
+Or a comma followed by a number meaning that it can match zero times to up to that number of repetitions.
+    re.findall(r'\w{,10}', 'I really like ghost stories')
+*** Extracting a PID Using regexes in python
+
+import re
+log = "July 31 3:51:43 mycomputer bad_process[12345]: ERROR Performing package upgrade"
+regex = r'\[(\d+)\]'
+result = re.search(regex, log)
+print(result[1]) -> This will output '12345'
+
+    (\d+) this is a capturing group which means that this expression will match one or more numerical characters
+
+    If the string 'log' does not have a number between square brackets, the code above will produce an error.Result will be 'None' in that case. Make it a function!
+*** Splitting and Replacing
+re.split() works similarly to string's split() but with the key difference that it takes a regex as a separator.
+
+re.split(r'[.?!]', 'One sentence. Another one? And a last one!')
+   this returns ['One sentence', 'Another one', 'And a last one']
+
+If we want to keep the elements that we used to split, we should use capturing parentheses.
+    re.split(r'([.?!])', 'One sentence. Another one? And a last one!')
+        this returns ['One sentence','.', 'Another one','?', 'And a last one', '!']
+
+We can use the re.sub() function to create new string by substituting all or part of them for a different string.
+    re.sub(r'[\w.%+-]+@[\w.-]+', '[REDACTED]', 'Received an email for go_nuts92@my.example.com')
+        This will change all the email addresses (and anything that looks like one) to '[REDACTED]'.
+
+
+re.sub(r'^([\w .-]*), ([\w .-]*)$'), r'\2 \1', "Lovelace, Ada")
+    This will output 'Ada Lovelace'
+        \2 indicates the second capture group and the \1 indicates the first one.
+* Week 4: Managing data and processes
+** Data Streams
+*** Reading data interactively
+the 'input' function allows the user to provide a certain value which can then be used on python scripts.
+
+E.g.
+name = input("Please enter your name: ")
+print('hello ' + name )
+
+
+How does a python program connect to both the screen and the keyboard? It uses I/O streams. I/O streams are the basic mechanism for performing input and output operations in your programs. Think of them like pathways. These are called streams because the data keeps flowing.
+
+_I/O streams_
+| standard input  | STDIN  | eg. keyboard input                                 |
+| standard output | STDOUT | eg. display                                        |
+| standard error  | STDERR | eg. errors on display like python's error messages |
+
+'$ cat file.txt' shows STDOUT
+'$ ls -z' shows STDERR
+*** Environment Variables
+Shell: A command-line interface used to interact with your operating system.
+The most popular one is 'Bash' but 'Zsh' and 'fish' are also quite popular.
+
+Python programs get executed inside a shell command-line environment.
+
+The variables set in that environment (environment variables) are another source of information that we can use in our scripts.
+
+To get the environment variables in python:
+    import os
+
+    print('HOME: ' + os.environ.get("HOME", ""))
+    print('SHELL: ' + os.environ.get("SHELL", ""))
+    print('FRUIT: ' + os.environ.get("FRUIT", ""))
+        In this last print statement, the variable 'FRUIT' is not present. However, since the variable was access using the get() method, so if it is not present, the method returns the default value that we passed, "".
+
+        If using 'os.environ[FRUIT]', this would result in an error.
+
+_TIP_
+you can see your environment variables using '$ env'
+
+_TIP_
+You can use the command "$ export FRUIT=Pineapple" to set the environment variable (no spaces!)
+
+**** _PATH variable_
+To print the PATH variable, use '$ echo $PATH'. The directories in this output are the locations where the shell will look for programs.
+*** Command-Line Arguments and Exit Status
+Another common way of providing information to our program is through command line arguments.
+Super common practice to make our scripts receive certain values by command line arguments.
+    Allows the code of a script to be generic and no user input. This way, you can specify the information before executing the script.
+
+    You can access these values using the 'argv' in the 'sys' module.
+
+        import sys
+        print(sys.argv)
+
+            if ran like '$ ./parameters.py', the output of this file would be: '['./parameters']'.
+            But if ran like '$ ./parameters.py one two three' the output would look like '['./parameters', 'one', 'two', 'three']'
+
+The 'Exit status' is the value returned by a program to the shell. In Unix based os's, the exit status of a process is 0 (zero) when the process succeeds and different than zero if it fails. The number returned provides information on what kind of error did the program encountered.
+
+    An useful application of this exit status is for the program to retry the command.
+
+**** An example using the command-line interface
+
+    '$ wc file.py' <- this will return the lines, words, and characters in the file.
+    '$ echo $?' <- this will return the exit status of the previous command. In this case. '0'.
+
+    '$ wc file-not-present.py' <- this will output an error. "No such file or directory"
+    '$ echo $?' <- this will return '1' since the command before failed.
+
+**** Another example using python this time:
+
+#!/usr/bin/env python3
+
+import os
+import sys
+
+filename = sys.argv[1]
+
+if not os.path.exists(filename):
+    with open(filename, "w") as f:
+        f.write("New file created\n")
+else:
+    print("Error, the file {} already exists!".format(filename))
+    sys.exit(1)
+
+
+        In this case, if the file does not exist, the exit status is 0. If the file does exist, the exit status is 1.
+**** Important distinctions between python2 and python 3
+In python 2, 'raw_input()' should be used instead of 'input()'. This is beacuase 'input()' will evaluate the input whereas 'raw_input()' will pass it as a string.
+
+
+In python 3, to evaluate the input of the user, use this:
+    number = input('Please enter a number: ') -> you write '3+2'
+    print(number) -> outputs '3+2'
+    eval(number) -> outputs 5 (This will be the output using input() in python2)
+** Python Sub-processes
+*** Running system commands in python
+What if you need to run a system command from python?
+**** Example of the subprocess module
+import subprocess
+
+subprocess.run(['date'])
+    -> the output of this looks like this:
+        CompletedProcess(args=['date'], returncode=0)
+
+To run the secondary command, a secondary environment is created for the child process or subprocess where the command is executed. While the parent process (our script itself) is waiting on the subprocess to finish, it is blocked (meaning that it can't do anything until the child process finishes). After the external command completes its work, the child process exits and the flow control returns to the parent.
+**** Another example
+you can access the exit status of the command like this:
+
+    result = CompletedProcess(args=['date'], returncode=0)
+    print(result.returncode)
+
+This return code can be helpful if we want to know if an operation such as 'chmod' was successful or not. Based on the return code, you can decide what to do next.
+**** TIP
+Pass a list with the command you want the subprocess to run. Like this:
+
+    subprocess.run(['/home/victor/eww/target/release/eww', 'open', 'bar'])
+*** Obtaining the output of a System Command
+**** example 1: STDOUT and STDERR
+#!/usr/bin/env python3
+import subprocess
+
+# This does not run on Arch
+result = subprocess.run(["host", "8.8.8.8"], capture_output=True)
+# This does
+result = subprocess.run(['getent','hosts','8.8.8.8'], capture_output=True)
+print(result.returncode) -> This returns 0 if succeeds
+print(result.stdout)
+    -> This returns an array of bytes:
+    b'8.8.8.8         dns.google\n'
+
+    This 'stdout' is an array of bytes because python does not which encoding to use to process the output.
+
+    For it to become a proper string, you need to use the 'decode()' function.
+    It uses UTF-8 by default.
+
+        result.stdout.decode()
+
+    If there is an error in the command execution, you can acces the output like this:
+
+        result.stderr
+
+**** Encoding
+/quote/
+"Data in computers is stored and transmitted in bytes and each can represent up to 256 characters. But there are thousands of possible characters out there used to write in various languages. Chinese, for example, requires over 10,000 different characters. To be able to write in those languages, several specifications called encodings have been created over time to indicate which sequences of bytes represent which characters. Nowadays, most people use UTF-8 encoding, which is part of the Unicode standard that lists all the possible characters that can be represented. "
+**** Advanced Subprocess Management
+***** Example 1: changing the PATH variable in a 'fake' environment
+import os
+import subprocess
+
+# This copies and creates a new dictionary containing the current environment variables
+my_env = os.environ.copy()
+# This adds an extra directory to the PATH variable
+# These changes do not affect the original environment! :)
+# This os.pathsep.join joins elements og the list that we are passing with a path separator corresponding to the current operating system. So that it also keeps the previous directories in the PATH variable.
+my_env['PATH'] = os.pathsep.join(['/opt/myapp/', my_env['PATH']])
+# Then we run the command and pass the environment we prepared.
+result = subprocess.run(['myapp'], env=my_env)
+
+/quote/
+    "one way of providing information to our processes is to modify the environment variables. Using this mechanism, we can change where the process looks for executable files, which commands it uses interact with some parts of the system, the kind of output it'll generate and a bunch more things. The usual strategy for modifying the environment of a child process is to first copy the environment seen by our process, do any necessary changes, and then pass that as the environment that the child process will see."
+***** Some useful parameters of subprocess.run()
+- We can use 'cwd' to set a new working directory. Useful if there are many files that we want to change in different directories.
+- 'timeout' will cause the run function to kill the process if it takes longer than a given number of seconds to finish.
+- 'shell' parameter, "If we set this to true, Python will first execute an instance of the default system shell and then run the given command inside of it. This means our command line could include variable expansions and other shell operations. Without the shell parameter, this would not be possible." -> This can be a security risk!
+
+Be careful when dealing with python's subprocesses. What happens if the flags that you pass change? What happens if you change to windows? Will the script fail or succeed in a harmful way?
+
+If doing something more complex or long-running, it is better to stick with baked-in or external modules that python provides.
+**** Processing log files
+***** What are log files?
+The different events that happen in programs that are running in a system and aren't connected to terminal are usually rent to log files.
+***** Filtering log files with regular expressions
+First open the log file (if the file is large, it is good idea to read the file line by line).
+
+    import sys
+    import re
+
+    logfile = sys.argv[1]
+    with open(logfile) as f:
+        for line in f:
+            if 'CRON' not in line:
+                continue
+            pattern = r'USER \((\w+)\)$'
+            result = re.search(pattern, line)
+            print(result[1])
+
+In this example, we want to filter for lines that contain 'CRON' ('CRON jobs' are used to schedule scripts on UNIX-based OSs). We also know that the log file contain at the end lines with the format 'USER (naughty_user)'.
+
+***** Making sense of data
+Building on the previous example, we can create a dictionary to count how many times does each user appear.
+
+    import sys
+    import re
+
+    logfile = sys.argv[1]
+    usernames = {}
+    with open(logfile) as f:
+        for line in f:
+            if 'CRON' not in line:
+                continue
+            pattern = r'USER \((\w+)\)$'
+            result = re.search(pattern, line)
+            # if there are no matches to the regex search
+            if result is None:
+                continue
+            name = result[1]
+            usernames[name] = usernames.get(name, 0) + 1
+
+print(usernames)
+
+Here, the get methods tries to access the key user and returns zero otherwise. Then it adds one and finally assigns the value to the key user. Pretty neat.
+
+* Week 5: Testing in python
+** Simple Tests
+*** What is testing?
+Software testing: The process of evaluating computer code to determine whether or not it does what you expect it to do.
+
+Writing tests can eliminate a lot of bugs, helping to improve reliability and the quality of automation.
+
+Tests can make good code great.
+*** Manual Testing and Automated Testing
+Example: Manual testing
+- Passing different parameters to a function to see if the output is the one expected.
+        rearrange_name("Hopper, Grace M.")
+        rearrange_name("Ritchie, Dennis")
+- Using the interpreter (on the terminal application) to test code is another way of manually testing.
+
+Automatic testing
+Formal software testing, codifying test into its own software and code that can be run to verify that our program  do what we expect them to do. The goal of automatic testing is to automate the process of checking if the returned value matches the expectations.
+
+Why code a test for the code? Because you want to test your code, you want to check that it does what it is supposed to with a lot of different values (i.e. test cases). The more test cases, the better.
+** Unit tests
+Unit tests: Used to verify that small, isolated parts of a program are correct.
+    Unit tests should only test the unit they target (isolate the test, so no external factors should come at play).
+
+Our tests should never modify the production environment (this is a live environment that runs a software that users interact with).
+
+_PRO TIP_
+To import a function from another module/file use this:
+    from nameOfFile import nameOfFunction
+
+    # you can the function without calling the module
+    nameOfFunction(params)
+
+*** Writing Unit Tests in Python
+Convention: to write a different file alongside the module that we are testing. The name should be the same with the suffix '_test' to it.
+
+**** Example:
+_Original module file_ named 'rearranged.py'
+#!/usr/bin/env python3
+
+import re
+
+def rearrange_name(name):
+    result = re.search(r'^([\w .]*'), ([\w .]*)', name)
+    return '{} {}'.format(result[2], result[1])
+
+_Test file for the module above_ named 'rearranged_test.py'
+#!/usr/bin/env python3
+
+from rearrange import rearrange_name
+import unittest
+
+# create a new class that inherits from unittest TestCase
+class TestRearrange(unittest.TestCase):
+    def test_basic(self):
+        testcase = 'Lovelace, Ada'
+        expected = 'Ada Lovelace'
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+# now use this to run the test for us.
+unittest.main()
+
+This example will return OK if the test was successful.
+
+*** Edge Cases
+Edge Case: Inputs to our code that produce unexpected results, and are found at the extreme ends of ranges of input we imagine our programs will typically work with.
+
+Keep in mind, that sometimes errors are preferred over automation failing silently.
+
+Other edge cases include: passing zero, negative numbers, or extremely large numbers to a function that expects a number.
+
+**** Example:
+_Original module file_ named 'rearranged.py'
+#!/usr/bin/env python3
+
+import re
+
+def rearrange_name(name):
+    result = re.search(r'^([\w .]*'), ([\w .]*)', name)
+    # this fixes the edge test
+    if result == None:
+        return ''
+    return '{} {}'.format(result[2], result[1])
+
+_Test file for the module above_ named 'rearranged_test.py'
+#!/usr/bin/env python3
+
+from rearrange import rearrange_name
+import unittest
+
+# create a new class that inherits from unittest TestCase
+class TestRearrange(unittest.TestCase):
+    def test_basic(self):
+        testcase = 'Lovelace, Ada'
+        expected = 'Ada Lovelace'
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+    # This is an edge test
+    def test_empty(self):
+        testcase = ''
+        expected = ''
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+# now use this to run the test for us.
+unittest.main()
+*** Additional Test Cases
+**** Example
+_Original module file_ named 'rearranged.py'
+#!/usr/bin/env python3
+
+import re
+
+def rearrange_name(name):
+    result = re.search(r'^([\w .]*'), ([\w .]*)', name)
+    # this fixes the edge test
+    if result == None:
+        return name
+    return '{} {}'.format(result[2], result[1])
+
+_Test file for the module above_ named 'rearranged_test.py'
+#!/usr/bin/env python3
+
+from rearrange import rearrange_name
+import unittest
+
+# create a new class that inherits from unittest TestCase
+class TestRearrange(unittest.TestCase):
+    def test_basic(self):
+        testcase = 'Lovelace, Ada'
+        expected = 'Ada Lovelace'
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+    # This is an edge test
+    def test_empty(self):
+        testcase = ''
+        expected = ''
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+    # this is an additional test
+    def test_double_name(self):
+        testcase = 'Hopper, Grace M.'
+        expected = 'Grace M. Hopper'
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+    # this is another test
+    def test_one_name(self):
+        testcase = 'Voltaire'
+        expected = 'Voltaire'
+        self.asssertEqual(rearrange_name(testcase), expected)
+
+# now use this to run the test for us.
+unittest.main()
+*** Unit Test cheat sheet links
+Basic Example
+    https://docs.python.org/3/library/unittest.html#basic-example
+Run tests using the command-line
+    https://docs.python.org/3/library/unittest.html#command-line-interface
+Various unit test design patterns
+    https://docs.python.org/3/library/unittest.html#organizing-test-code
+More about assertRaises
+    https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertRaises
+
+*** Unit Test on Jupyter Notebooks
+The funtion 'unittest.main()' looks at the sys.argv which in Jupyter, by default, the first parameter of sys.argv is what started the jupyter kernel (not the parameter that we would introduce in the command-line)
+
+To solve this, use this:
+unittest.main(argv = ['first-argv-is-ignored'], exit = False)
+** Other Test Concepts
+*** Black Box vs. White Box
+_White Box testing_: (AKA clear-box or transparent testing) relies on the test creator's knowledge of the software being tested to construct the test cases.
+
+_Black box tests_: are written with an awareness of what the program is supposed to do - its requirements or specifications - but not how it does it.
+
+Black box tests are less biased by the code. If tests are written before the code is developed, then they are black box tests. If code is developed before tests, then the test are considered to be white box tests.
+*** Other test types
+_Unit tests_: these type of tests focus on a single function which is isolated from any other external variables so that the test ensures the correct functionality of the code.
+
+_Integration tests_: These types of test verify that the interactions between different pieces of code in integrated environments are working the way we expect them to. Make sure the whole system works.
+
+    Only run integration tests on the active environment only if the code does not make any changes to the production environment.
+
+    Example of integration test: if the service you are trying to test interacts with a database, create a separete test database with a test user and a test table.
+
+A variant of integration tests are _regressions tests_ which are tests that are usually written as part of a debugging or troubleshooting process to verify that an issue or error has been fized once it's been identified.
+
+    For example, write a test that triggers the buggy behavior, then squash the bug, and finally rerun the test to make sure it's ok.
+
+_Smoke tests_ (sometimes called build verification tests) answer basic questions such as 'does the program run?' and help to identify major bugs before moving to more refined testing (since they will fail).
+
+_Load tests_ verify that the system behaves well when it is under significant load.
+
+Taking together a group of tests of one or many kinds is commonly referred as 'test suite'
+*** Test driven development
+Code -> Test --- This is probably not the best idea.
+
+Test -> Code --- This might be better. Also know as TDD (test driven development).
+
+Writing tests first helps you think about the ways the program might fail and break which can lead to some valuable insights or even change the approach you take for the better.
+*** Links: More about tests
+https://landing.google.com/sre/sre-book/chapters/monitoring-distributed-systems/
+https://landing.google.com/sre/sre-book/chapters/testing-reliability/
+https://testing.googleblog.com/2007/10/performance-testing.html
+https://www.guru99.com/smoke-testing.html
+https://www.guru99.com/exploratory-testing.html
+https://testing.googleblog.com/2008/09/test-first-is-fun_08.html
+** Errors and Exceptions
+*** The Try-Except Construct
+**** example
+#!/usr/bin/env python3
+
+def character_frequency(filename):
+    """Counts the frequency of each character in the given file"""
+    # first try to open the file
+    try:
+        f = open(filename)
+    except OSError:
+        return None
+
+    # Now process the file
+    characters = {}
+    for line in f:
+        for char in line:
+            characters[char] = characters.get(char, 0) + 1
+    f.close()
+    return characters
+
+In this example, there is only one except block, but there might be more.
+
+The code in the except block is only executed if one of the instructions in the try block raises an error of the matching type (such as OSError)
+
+Returning 'None' when the code encounters an error is a common pattern but not the only one. But we might as well return "", 0, [], {}, and so on... The types of errors that a function can raise are typically in the documentation.
+*** Raising Errors
+/quote/
+    "So as a rule, we should use raise to check for conditions that we expect to happen during normal execution of our code and assert to verify situations that aren't expected but that might cause our code to misbehave."
+**** example: 'raise'
+
+#!/usr/bin/env python3
+
+def validate_user(username, minlen):
+    if minlen < 1:
+        raise ValueError("minlen must be at least 1")
+    if len(username) < minlen:
+        return False
+    if not username.isalnum():
+        return False
+    return True
+
+
+The keyword to raise an error in python is 'raise'. There are many prebuilt errors in python but we can also build your own if the standards are not good enough.
+
+**** example: 'assert'
+
+To check that the code behaves the way it should, particularly when we want to avoid situations that should never happen.
+
+    #!/usr/bin/env python3
+
+    def validate_user(username, minlen):
+        # if this is not true, the interpreter will raise an AssertionError with that message.
+        assert type(username) == str, "username must be a string"
+        if minlen < 1:
+            raise ValueError("minlen must be at least 1")
+        if len(username) < minlen:
+            return False
+        if not username.isalnum():
+            return False
+        return True
+
+
+Assertions can be very helpful when debugging. Use them to ensure that the variables contain the values and types they should or when something that shouldn't be happening is happening.
+
+HEADS UP. Assertions will be removed if we ask the interpreter to optimize and run faster.
+*** Testing for Expected Errors
+**** Example
+This is a test suit:
+
+#!/usr/bin/env python3
+
+import unittest
+
+from validations import validate_user
+
+    class TestValidatedUser(unittest.TestCase):
+        def test_valid(self):
+            self.assertEqual(validate_user("validuser", 1), True)
+
+        def test_too_short(self):
+            self.assertEqual(validate_user("inv", 5), False)
+
+        def test_invalid_characters(self):
+            self.assertEqual(validate_user("inv", 5), False)
+
+        def test_invalid_characters(self):
+            self.assertEqual(validate_user("invalid_user",1) False)
+
+        def test_invalid_minlen(self):
+            self.assertRaises(ValueError, validate_user, "user", -1)
+    # run the tests
+    unittest.main()
+
+
+
+This 'assertRaises', this method is calling the function in a try-except block and checks that it raises the error we said it would raise. In this case, it does raise the error which means the test went OK!
+* Week 6: Bash Scripting
+** Interacting with the command line shell
+*** Basic Linux Commands
+- 'echo' -> prints messages to the screen
+- 'cat' -> showing contents of a file
+- 'ls' -> list the contents of a directory
+- 'chmod' -> change permission of a file
+- 'mkdire' -> creates a new directory
+- 'cd' -> change directory
+- 'pwd' -> print working directory
+- 'cp' -> copy files
+- 'mv' -> move/rename files
+- 'touch' -> create a new file
+- 'rm' -> remove file(s)
+- 'rmdir' -> remove directory (only on empty directories)
+****  _tips_
+  '..' means parent directory
+  '.' this directory
+**** Cheat-Sheet, more commands
+/quote/
+_Managing files and directories_
+cd directory: changes the current working directory to the specified one
+pwd: prints the current working directory
+ls: lists the contents of the current directory
+ls directory: lists the contents of the received directory
+ls -l: lists the additional information for the contents of the directory
+ls -a: lists all files, including those hidden
+ls -la: applies both the -l and the -a flags
+mkdir directory: creates the directory with the received name
+rmdir directory: deletes the directory with the received name (if empty)
+cp old_name new_name: copies old_name into new_name
+mv old_name new_name: moves old_name into new_name
+touch file_name: creates an empty file or updates the modified time if it exists
+chmod modifiers files: changes the permissions for the files according to the provided modifiers; we've seen +x to make the file executable
+chown user files: changes the owner of the files to the given user
+chgrp group files: changes the group of the files to the given group
+_Operating with the content of files_
+cat file: shows the content of the file through standard output
+wc file: counts the amount of characters, words, and lines in the given file; can also count the same values of whatever it receives via stdin
+file file: prints the type of the given file, as recognized by the operating system
+head file: shows the first 10 lines of the given file
+tail file: shows the last 10 lines of the given file
+less file: scrolls through the contents of the given file (press "q" to quit)
+sort file: sorts the lines of the file alphabetically
+cut -dseparator -ffields file: for each line in the given file, splits the line according to the given separator and prints the given fields (starting from 1)
+_Additional commands_
+echo "message": prints the message to standard output
+date: prints the current date
+who: prints the list of users currently logged into the computer
+man command: shows the manual page of the given command; manual pages contain a lot of information explaining how to use each command (press "q" to quit)
+uptime: shows how long the computer has been running
+free: shows the amount of unused memory on the current system
+*** Redirecting Streams
+Redirection: the process of sending a stream to a different destination.
+
+To redirect the output of a command to a text file, you can use the '>' character. E.g.
+    ./somefile.py > new_file.py
+        ! Each time we perform a redirection of STDOUT, the destination is overwritten!
+
+To append the output of a command to a text file, you can use '>>'. E.g
+    ./some_python_script.py >> log_of_that_script.txt
+
+To redirect the contents of a file as input for another file (for example, instead of using the keyboard) (this will be seen by the 'input' function on the script), you can use the '<' character. E.g.
+    ./streams_err.py < some_file.txt
+        Keep in mind that the 'input' functions only reads until it encounters a new line character.
+
+To can also redirect the STDERR (error output) using the '2>' characters. E.g.
+    file_raises_error.py 2> log_file.txt
+        Redirecting the error will prevent it from showing on the screen.
+
+The 2 in '2>' represents the file descriptor which in this case is the STDERR, 0 and 1 correspond to the STDIN and STDOUT, respectively. You can think of file descriptors like a kind of variable pointing to a I/O resource.
+*** Pipes and Pipelines
+Pipes: Connect the output of one program to the input of another in order to pass data between programs.
+
+Pipes are represented with the pipe '|' character.
+
+**** Example 1
+    $ ls -al | less
+        This will display the output of '$ ls -al' into 'less' which is a terminal paging program (displays them one page at a time),
+
+
+**** Example 2
+$ cat spider.txt | tr ' ' '\n' | sort | uniq -c | sort -nr | head
+    'cat' reads the file, passes it to
+    'tr' (translate) replaces ' ' with '\n', passes it to
+    'sort' sorts results alphabetically, passes it to
+    'uniq -c' displays each result once and the -c parameter adds the counter of the number of occurrences of each entry, passes it to
+    'sort -nr' sorts them numerically ('n') and ('r') descending, passes to
+    'head' which prints the first ten lines to STDOUT.
+        Basically, this returns an ordered list of the frequency of occurrence of each word in the file spider.txt.
+**** Example 3
+
+This is in file ./capitalize.py
+
+    #!/usr/bin/env python3
+
+    import sys
+
+    for line in sys.stdin:
+        print(line.strip().capitalize())
+
+Then, on the terminal:
+
+    $ cat heiku.txt | ./capytalize.py
+
+Here, bash reads the output of 'cat heiku.py' (which is STDOUT) and redirects them using '|' to the script in ./capytalize.py (as STDIN). The scripts 'sees' the STDIN at the parameter 'sys.stdin'. The contents in this is a file object (the same as open('file.txt)). The result is the content of the heiku.txt file with the first word of each line capitalized.
+
+You could also do this for the same result:
+    $ ./capitalize.py < heiku.txt
+*** Signaling processes
+Process need to communicate with each other.
+
+Signals: Tokens delivered to running process to indicate desired actions.
+
+Example of signaling a process: pause it, terminate it, reload configuration, or close all open files.
+
+**** Example:
+
+the 'ping' command sends ICMP packets to machine over network once per second.
+
+    '$ ping 8.8.8.8'
+
+When you press Ctrl+c, a signal is sent to the process for it to do whatever it needs to finish cleanly. This is a SIGINT.
+
+Another signal is Ctrl+z which will send a signal SIGSTOP which causes a program to stop running without terminating.
+    To resume this program, type 'fg'.
+
+You can also send a SIGTERM using another program named 'kill' which requires a process identifier or PID.
+
+To know the PID of a process, you can use 'ps'. To see all the processes running on the computer use '$ps ax'.
+    You can also use pipe grep like this '$ ps ax | grep ping'
+**** More examples
+- Long running programs will reload their disk configuration without stopping at some signal.
+- Web services may receive a signal to terminate cleanly any open connection.
+*** Redirections, Pipes, and Signals
+_Managing streams_
+These are the redirectors that we can use to take control of the streams of our programs
+command > file: redirects standard output, overwrites file
+command >> file: redirects standard output, appends to file
+command < file: redirects standard input from file
+command 2> file: redirects standard error to file
+command1 | command2: connects the output of command1 to the input of command2
+_Operating with processes_
+These are some commands that are useful to know in Linux when interacting with processes. Not all of them are explained in videos, so feel free to investigate them on your own.
+ps: lists the processes executing in the current terminal for the current user
+ps ax: lists all processes currently executing for all users
+ps e: shows the environment for the processes listed
+kill PID: sends the SIGTERM signal to the process identified by PID
+fg: causes a job that was stopped or in the background to return to the foreground
+bg: causes a job that was stopped to go to the background
+jobs: lists the jobs currently running or stopped
+top: shows the processes currently using the most CPU time (press "q" to quit)
+** Bash scripting
+*** Creating bash scripts
+Bash is the most commonly used shell in Linux.
+
+Bash is not just the interpreter that runs our commands, but also a scripting language.
+**** Example script
+
+    #!/bin/bash
+
+    echo "Starting at: $(date)"
+    echo
+
+    echo "UPTIME"
+    uptime
+    echo
+
+    echo "FREE"
+    free
+    echo
+
+    echo "WHO"; who; echo
+
+    echo "Finishing at: $(date)"
+
+
+Writing the script in new lines is common practice, but they can also be written in a single line using ';' semicolons to separate each line.
+*** Using variables and globs
+**** Variables
+Remember, environment variables are set in the environment in which the command is executing.
+
+You set the variables using the '=' character.
+You access the variable by prefixing the char '$'.
+
+    $ example=hello
+    $ echo $example
+
+This will output 'hello'. Watch out, there cannot be spaces before or after the '=' sign.
+
+Also, each variable is local in the environment you define it. If you want commands from other environments to also see the variable, you need to export it using the 'export' keyword.
+**** Globs
+Globs are characters that allow us to create a list of files. The star '*' and question mark '?'' are the most common examples.
+
+    $ echo *.py
+
+this will return all files ending in '.py'
+
+    $ echo test*
+
+this will return all the files starting with 'test'
+
+    $ echo ?????.py
+
+this will return all the files with exactly a length of five characters for name (plus .py). (eg. hello.py).
+*** Conditional Execution in Bash
+Remember: When calling '$ echo $?', bash will print the exit value of the previous command. The value of '0' means success.
+
+Example, file: check_localhost.sh
+
+    #!/bin/bash
+
+    if grep "127.0.0.1" /etc/hosts; then
+        echo "Everything ok"
+    else
+        echo "ERROR! 127.0.0.1 is not in /etc/hosts"
+    fi
+
+It is possible to write all in one line but it is nice to have commands in separate lines and use indentation to clearly show the body of the conditional.
+
+Use 'test', a command that evaluates the conditions received and exits with zero when they're true and with one when they're false.
+
+    $ if test -n "$PATH"; then echo "Yout path is not empty"; fi
+
+In this case, 'test -n' checks if  a string variable is empty or not ("$PATH" in this case).
+
+But since the 'test' command is so common, there is another way of writing this:
+
+    $ if [ -n "$PATH" ]; then echo "Your path is not empty"; fi
+**** Bash scripting resources
+https://ryanstutorials.net/bash-scripting-tutorial/
+https://linuxconfig.org/bash-scripting-tutorial-for-beginners
+https://www.shellscript.sh
+** Advanced Bash Concepts
+*** While Loops in Bash Scripts
+
+example in file: while.sh
+
+    #!/bin/bash
+
+    n=1
+    while [ $n -le 5 ]; do
+        echo "Iteration number $n"
+        ((n+=1))
+    done
+
+'[ $n -le 5 ]' checks that n is less ('-l') or equal ('-e') to five. The loop itself starts and finishes with the keywords 'do' and 'done', respectively.
+
+The double parentheses in the '((n+=1))' allows us to do arithmetic operations with our variables.
+
+
+It is very common to try a command a couple of times (e.g. when dealing with network connections or resources that might be locked) since they are likely to fail for external reasons.
+
+The following bash sript will try to run a command a couple of times.
+
+    #!/bin/bash
+
+    n=0
+    command=$1
+    while ! $command && [ $n -le 5 ]; do
+        sleep $n
+        ((n=n+1))
+        echo "Retry #$n"
+    done;
+
+Here, '$1' access the first command line argument. In python, we get the same information using 'sys.argv[1]'.
+
+This file will try the to execute the command 5 of times.
+*** For Loops in Bash Scripts
+**** Example 1: fruits.sh:
+
+    #!/bin/bash
+
+    for fruit in peach orange apple; do
+        echo "I like $fruit!"
+    done
+
+Like in this example, you can simple list the elements for to 'for loop' to go through. But you might as well go through all the files in the directory or all HTML files.
+
+**** Example 2: rename.sh
+
+    #!/bin/bash
+
+    for file in *.HTM; do
+        name=$(basename "$file" .HTM)
+        mv "$file" "$name.html"
+    done
+
+**** Tip
+
+It is a good practice to use double quotes, "", surrounding the variable names to ensure that the command works even if the variable contain spaces.
+
+_PRO TIP_
+whenever dealing with the file system, it is a good idea to test the script before modifying any actual file. To do this, you can add 'echo' just before the command that modifies the file system. This will print what the command will do (without the 'echo' command). E.g.
+
+    echo mv "$file" "$name.html"
+
+*** Advanced Command Interaction
+    /var/log/syslog
+        this is a log file. It contains a trove of information about what is going on in the system. (Not in Arch though).
+**** Example 1
+
+    $ tail /var/log/syslog | cut -d' ' -f5-
+
+Here, 'tail' passes to 'cut' the last ten elements in the log file. Then 'cut' splits each line with the delimeter (-d) ' ' and returns the field 5 and more (-f5-).
+**** Example 2
+
+    $ cut -d' ' -f5- /var/log/syslog | sort | uniq -c | sort -nr | head
+
+In this example, cut removes the date from each entry, then sorts it alphabetically, then counts each unique occurrence, then sorts them numerically in descending order, and then prints the first 10 logs entries.
+**** Example 3
+
+In toploglines.sh
+
+    #!/bin/bash
+
+    for logfile in /var/log/*log; do
+        echo "Processing: $logfile"
+        cut -d' ' -f5- $logfile | sort | uniq -c | sort -nr | head -5
+    done
+
+
+This script will look at all the files ending with 'log' in the /var/log directory and then print the 5 most frequent log entry in each file.
+*** Choosing between Bash and Python
+
+As a general rule, use bash when dealing with something simple since things can get a little messy and hard to read/debugg. Use python when things get a little bit more complex. Remember that you can use sys.stdin for getting the data stream sent by the terminal such as:
+
+    $ cat sometext.txt | ./capitalize_each_word.py
+
+Also, some bash commands might not be available in some OS's whereas python will have the same functions (with some caveats, tho).
+
+Simple and a single platform -> use bash
+Complex and multi platform -> use python
+* Week 7: Final Project
+** Getting ready for the final project
+*** Writing a script from the ground up
+Steps
+1. Understand the problem statement.
+2. Research (what tools will you use?)
+3. Planning (design)
+4. Writing (coding and testing)

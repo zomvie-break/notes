@@ -1,0 +1,55 @@
+#+TITLE: What I learned in "Introduction to Git and GitHub"
+#+AUTHOR: VICTOR M VAQUERO
+
+Regardless of what programming language I use, or whether I'm working on an app, script, website, config files, etc... I can  definitely say that git and GitHub are included in the development workflow.
+
+However, git and GitHub have a lot of options which made a beginner like me to easily get lost. Not that I was a complete newbie -- I have pushed repos to my personal GitHub account as well as pulled repos from the Arch User Repository (AUR) for the software that is not available through pacman (Arch's package manager) -- but by no means was I proficient using git and github.
+
+So what was the motivation on completing this intro. course? Well, I recently started using emacs (as an IDE/text editor or whatever emacs ought to be) and there's this pretty popular add-on called 'Magit' which apparently is really good (as far as I can tell, magit and org-mode are two of the main reasons why emacs is popular). My first impression of magit was "wow! I really do not know how to use git". After completing this course I can confidently say that I know the basics which are probably what most developers use most of the time. That being said, there are still a lot of options that I do not know how to use, yet.
+
+As of now, I am not working on any open source project, but I now have the knowledge on how not to make a complete fool of myself through pull requests and I'll definitely consider it. For the time being, I'll keep working on some personal projects for the foreseeable future.
+
+
+In this post, I going to summarize what I learned. From "simple" concepts to describing the git workflow in different scenarios.
+
+
+* Week 1: Introduction to version control
+** Diffing files: see the difference between files.
+$ diff fileName1 fileName2
+The output contains '<' which tells us that the line was removed and '>' tells us that the line was added. Also, the output contains numbers/letters (e.g. 5c5,6) which tells us what happened and where it happened (in this example line 5 in the first file was changed to the lines 5 and 6 in the second file).
+
+You can also diff files word by word using wdiff.
+
+/You can also save the output to a file using the following syntax:/
+$ diff -u FileName1 FileName2 > FileWithChanges.diff
+In this case, "FileWithChanges.diff" is called a diff file or a patch file.
+
+You can use this diff file to patch a file. For example, let's suppose that you are working with main.py but it contains a bug, so you send it to your friend for him to fix. And since your friend is an IT pro, he sends you a diff file with the changes instead of the whole main.py file. In order to apply the fix provided by your friend, you use the following command:
+$ patch main.py < fixMain.diff
+And voila! The main.py is fixed, just like that. This is pretty cleaver but it gets better: this diff file can contain changes in many files and/or directories (which would be tiresome to do this changes by hand) and it also respects whatever changes you might have made while your IT friend worked on the bug.
+
+** Version control system (vcs)
+A VCS lets us know when a file was changed, who changed it, and also lets us roll back this changes. Git is the most popular VCS (git-scm.com) which is a Source Control Management (SCM) but there are other tools such as subversion and  mercurial.
+
+** Using Git
+After initializing git ("$ git init"), the area outside the git directory (./.git/) is the working tree, which acts as a sandbox where you can edit the current versions of the files and the git directory acts like a database for all the changes tracked by git.
+
+Apart from the working tree, there is also the staging area (a.k.a. index) which is a file that contains all the information about what files and changes are going to be in your next commit. You add a file to the staging using:
+$ git add FileName
+
+And you commit a file using:
+$ git commit
+which will open the determined text editor for you to write a commit message (more on this later).
+You can also type a commit message from the terminal but I would suggest not to since it puts you on a wrong mentality for writing a good commit message right off the bat:
+$ git commit -m "Add commit message using command line interface"
+
+While using git, there are two types of files in the working tree: tracked files and untracked files. The tracked files are all those files you want to be on the "snapshot" of the project whereas the untracked files are not. Untracked files are files that don't need to be on the "snapshot", these files can be logs, config files, or sensitive information such as passwords and tokens (you really don't want to push this files to a public repo).
+
+Git requires you to add your name and email to its configuration (you can see the current git configuration using "$ git config -l" or "$ git config --list"). Keep in mind that this info will be publicly available if you commit to public repos.
+*** What makes a good commit message?
+- Keep the audience in mind.
+- A commit message is generally broken up into a few sections.
+  - The first line is usually kept to about 50 characters.
+  - Followed by one empty line,
+  - A text that is usually kept under 72 characters.
+    - Intended to provide a detailed explanation of what's going on with the change.

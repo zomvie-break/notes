@@ -1,0 +1,691 @@
+#+TITLE: 004 Troubleshooting And Debugging Techniques
+
+* Week 1: Troubleshooting Concepts
+** Course Introduction
+** Introduction to Debugging
+*** Intro to Module 1: Troubleshooting Concepts
+Debugging: The process of identifying, analyzing, and removing bugs in a system.
+Troubleshooting: The process of identifying, analyzing, and solving problems.
+
+Generally, we say troubleshooting when fixing the problems in a system running the application, and debugging when fixing the bugs in the actual code of the application.
+
+_Tools examples:_
+tcpdump, wireshark: show ongoing network connections, and help us analyze traffic going over our cables.
+
+ps, top, free: show us the number and types of resources used in the system.
+
+strace: look at the system calls made by a program.
+
+ltrace: look at the library calls made by the software.
+*** Problem solving steps
+1. Getting the information.
+2. Finding the root cause.
+3. Performing the necessary remediation.
+
+   Reproduction case: A clear description of how and when the problem appears.
+
+Important: document what we do:
+- The info that we get.
+- The different things we tested and try to figure the root cause.
+- The steps we took to fix the issue.
+
+*** Silently Crashing Applications
+System calls: Calls that the programs running on your computer make to the running kernel.
+**** Tip
+You can use '$strace ./filename.py' to see the system calls. You can pass the output to 'less' or save it to a file like this: '$ strace -o failure.strace ./filename.py'
+** Understanding the Problem
+*** "It Doesn't Work"
+Questions to ask the user that simply reports something doesn't work:
+- What were you trying to do?
+- What steps did you follow?
+- What was the expected result?
+- What was the actual result?
+
+  It is always better to consider the simplest explanations first and avoid jumping into complex or time-consuming solutions unless we really have to.
+*** Creating a Reproduction Case
+Reproduction case: a way to verify if the problem is present or not.
+
+1. Read the logs.
+   1. On Linux: /var/log/syslog and .xsession-errors
+   2. On Mac: /Library/Logs
+   3. On Windows: Use event viewer
+
+Example of reproduction cases: Get the same version of the application with the same configuration as the user that reported the problem, try to reach the same website as an user that is having problems with it.
+*** Finding the Root Cause
+1. Looking at the information that we have
+2. Coming up with a hypothesis that could explain the problem
+3. Testing our hypothesis
+
+Whenever possible, we should check our hypothesis in a test environment, instead of the production environment that our users are working with.
+
+The extra safety is always worth it.
+**** Tip
+iotop: tool for checking which processes are using input/output.
+iostat and vmstat: show statistics on the I/O operations and the virtual memory operations.
+
+iftop: shows the current traffic on the network interfaces.
+
+rsync: popular tool to create backups. (inclues a -bwlimit option to limit the bandwidth)
+
+trickle: program to limit the bandwidth (if rsync is not available/used)
+
+If the issue is that a process generates too much input or output, we could use a command like ionice to make our backup system reduce its priority to access the disk and let the web services use it too (this is in the example where an user cannot access a website because a server is running a backup process).
+
+**** Example problem
+Users complain that a website is inaccessible. The problem is that the web services server is running a backup.
+
+Possible issues:
+1. The backup is using a lot of I/O.
+   - Use ionice to limit it.
+2. The backup is using a lot of the network.
+   - Use rsync -bwlimit to limit the bandwidth.
+   - If not using rsync, use trickle to limit the bandwidth.
+3. The backup is using a lot of resources because of an aggressive compression.
+   - Reduce the compression level
+   - Use nice to reduce the priority of the process
+
+For other problems, look at the logs.
+*** Dealing with Intermittent Issues
+Problems that occur only occasionally.
+
+- Get more info to figure out when does it happen and when it does not.
+  - Since you do not know when the bug will trigger, you need to be extra thorough with the information that you log.
+  - If you do not have access to the code, try to find a logging configuration to change e.g. debugging mode (which generates way more output than the normal mode).
+    - If this is not possible, monitor the environment, e.g. The load on the computer, the processes running at the same time, the usage of the network.
+- Heisenbugs: When trying to observe the bug, it disappears.
+  - Usually point to bad resource Management.
+- In many cases, power cycling a device or restarting a program can fix problems. Why? A lot of things change: getting back to a clean slate (releasing allocated memory, deleting temporary files, resetting the running state of programs, re-establishing network connections, closing open files and more...)
+  - When this happens, it is very likely that there is a bug in the software that probably has to do with managing resources correctly.
+- Try to figure out the problem, another solution is to program a restart at a time that is not problematic.
+
+*** Intermittently Failing Script
+**** Example
+An app meant to send meeting reminders to a team keeps crashing. The app is written in bash and python3.
+
+Possible causes:
+The way the date is formatted. In this case, look at the script and try to get more debuggging information.
+** Binary Searching a Problem
+*** What is binary search?
+Linear search: The time it takes to find the result is proportional to the length of the list.
+
+Binary search: (for sorted lists) Look for the element that we are looking for at the middle of the list, which then compares the element in the middle (is it bigger? smaller? or equal?). Then look at the half section of the list where the element is supposed to be and repeat the process until the search is finished. The max number of searches in a binary search is log_2(length of list)
+
+*** Applying Binary Search in Troubleshooting
+We can apply the same principles of binary search in troubleshooting. For example, say that an application crashes because of a bad configuration file. However, there are 12 configuration files. You would run the program with half of them (six), to see if the problem is with that half, then with the other half (six). Then test half (1/4 of the total, i.e. 3) the configuration files, and so on until you find the troublesome one.
+
+Another example would be a web browser crashing because of an extension. You could disable half of the extensions on a web browser and see if it still crashes, then the half (1/4 of the total) and so on.
+
+Also useful for plug-ins in desktop environments, or entries in a database.
+
+These approaches are sometimes called bisecting.
+
+**** Using Git to bisect
+bisect command on git receives two points in time in the git history and repeatedly let's us try the code between two versions until we find the culprit.
+**** Finding Invalid Data
+As always, remember to use the test server. Never run test on the production environment.
+
+To find the invalid data in a spreadsheet, you can use the same technique as before, bisect.
+Run the script with half of the entries and then half of the half, and so on until you find the troublemaker. E.g. suppose that the 'import.py' is a script that takes the users in a csv file to a database, but there is an error with the 'contacts.csv' file. To find the culprit in the file you can use the bisect method:
+
+'$ head -50 | ./import.py --server test'
+
+If there is an error here, bisect again:
+
+'$ head -50 | head -25 | ./import.py --server test'
+
+**** Tip
+You can use '$wc -l filename.xlsx' to count the lines in the file.
+
+You can use '$ head -100' or '$ tail -100' to pass 100 entries of a file (such as a csv file).
+* Week 2: Slowness
+** Understanding Slowness
+*** Intro to Module 2: Slowness
+Closing a program can help reduce the slowness because it frees some resources (like CPU time, RAM, or video memory).
+Applications and elements (such as web-browser tabs) take up resources.
+*** Why is my computer slow?
+Even on a single-cored CPU, apps get some CPU time. If there are a lot of apps, or if an app needs more cpu time than what it was given, slowness happens.
+
+Identify bottlenecks:
+- CPU time
+  - Close other apps
+- reading data from disk
+  - uninstall apps or move/delete unwanted files
+- waiting for data transmitted over network
+  - Stop other processes that are also using the network
+- moving data from disk to ram
+- or any other resource that limits the overall performance
+
+In some cases, the bottlenecks come from the hardware limitations. To fix these, an upgrade is required.
+ - To know which hardware needs an upgrade, it is necessary to monitor the system to check which resource gets exhausted.
+**** Monitoring a system
+On linux based systems: top, iotop, iftop.
+On MacOS: Activity Monitor
+On Windows: Resource Monitor and Performance Monitor
+*** How Computers Use Resources
+Time to access data from different sources (more is worse):
+CPU internal memory (a variable being used in a function by the CPU) < RAM (data related to the current program but not the currently executed function ) < Disk < Network (lower transmission speed and set up connection)
+
+If you often get data from the network, you might consider it having a copy on disk.
+If you often read data from disk, consider moving it into the process memory (i.e. create a cache).
+
+_Cache_ stores data in a form that's faster to access than its original form.
+
+If data is part of a program that is currently running, it would be on RAM. When running out of space in the RAM, the OS will remove from RAM anything that is cached and not strictly necessary. If there is still not enough space in the RAM, the OS will place the parts of the memory that aren't currently in use to a space called SWAP (on the disk). If the available memory is significantly less than the application needs, the OS will keep swaping data, however, the computer can switch between applications really fast meaning that the data currently in use changes very quickly too. In this case, the computer will spend a lot of time writing to disk to free RAM and reading from disk to load data to the RAM. This is slow.
+
+Reasons for a lot of RAM usage: too many opened programs, too little RAM installed, or a program with a memory leak.
+
+_Memory leak_: memory which is no longer needed is not getting released.
+*** Possible Causes of Slowness
+Always start from the simplest explanations.
+
+When is a computer slow?
+At startup: there are probably to many programs configured to start at boot.
+After days of running just fine and goes away after a reboot: there is probably a program that is keeping a state while running
+    E.g. a program stores some data in memory and the data keeps growing over time, without deleting old values. (almost certainly a bug in the program). If you have access to the code, fix it, otherwise, schedule reboots at convenient times.
+    E.g. A file that the application is reading gets to large. A solution is to fix this bug in the code. If there is no access to the code, 'rotate' the contents. If it is a log file, use 'logrotate', otherwise, you might need to write your own tool.
+
+Is the slowness only on certain users of the computer? If so, what changes?
+Is data being retrieved from a network? When using an application that does a lot of read/write orders, try to move the location where most data is managed in a local directory,
+
+Errors in drives (HDD, SSD, RAM) can also lead to slowness.
+
+Malicious software can also lead to slowness (some scripts in websites or some extensions can use the processor to mine crypto).
+
+**** Tip
+logrotate : is a tool to reduce the size of log files.
+*** Slow Web Server
+Use 'ab' (apache benchmark tool) to figure out how quick does a page load.
+
+    '$ ab -n 500 site.example.com/'
+
+        This does 500 request to the website sequentially, but there are other options to do things like requesting simultaneously or passing a timeout.
+
+'top' to see what is going on... Load average shows how busy is the processor in a given minute (1 meaning that it was  busy for the whole minute) (for a CPU with two cores, 2 would indicate that the both processors were busy the whole minute).
+
+'nice' to start a program with a different priority (default is 0)
+'renice' to change the priority of a program already running.
+
+To change the priority of many programs currently working use something like this:
+
+    'for pid in $(pidof ffmpeg); do renice 19 $pid; done'
+
+        Here, we are getting the PID of the command 'ffmpeg' and then reassigning their priority using 'renice'.
+
+In this case, the 'ffmpeg' processes are running in parallel so we need to modifying whatever it triggers them.
+
+To see more information of all the processes currently running, run:
+
+    '$ ps ax | less' and then use '/' to search a keyword (such as 'ffmpeg')
+
+You can use the 'locate' command to find a directory in the hard drive:
+
+    '$ locate static/001.webm' which should output the whole directory path, if found.
+
+To locate a keyword in different files, you can use 'grep':
+
+    '$ grep ffmpeg *'
+
+To stop a process without killing it (such as stopping the conversion of webm files to mp4 instead of discarding the whole process), send the stop signal:
+
+    '$ killall -STOP ffmpeg'
+
+To restart the processes (not in parallel), you can use a for-loop similar to the previous one:
+
+    '$ for pid in $(pidof ffmpeg); do while kill -CONT $pid; do sleep 1; done; done'
+
+        This will sent the -CONT signal to one process at a time, when it is finished, it will fail and move to the next one.
+*** Monitoring tools
+Check out the following links for more information:
+
+https://docs.microsoft.com/en-us/sysinternals/downloads/procmon
+
+http://www.brendangregg.com/linuxperf.html
+
+http://brendangregg.com/usemethod.html
+
+Activity Monitor in Mac: https://support.apple.com/en-us/HT201464
+
+Performance Monitor on Windows https://www.windowscentral.com/how-use-performance-monitor-windows-10
+
+https://www.digitalcitizen.life/how-use-resource-monitor-windows-7
+
+https://docs.microsoft.com/en-us/sysinternals/downloads/process-explorer
+
+https://en.wikipedia.org/wiki/Cache_(computing)
+
+https://www.reddit.com/r/linux/comments/d7hx2c/why_nice_levels_are_a_placebo_and_have_been_for_a/
+** Slow Code
+*** Writing Efficient Code
+
+golden rule: We should always start by writing clear code that does what it should, and only try to make it faster if we realize that it's not fast enough. Optimization is the mother of all evil.
+
+Write code that:
+- easy to read
+- easy to maintain
+- easy to understand
+
+Common things to make code run faster: Store data that was already calculated to avoid calculating it again, using the right data structures for the problem, reorganizing the code so that the computer stays busy while waiting for information from slow sources (e.g. disk or network).
+
+To identify the sources of slowness, we need to find where the code spends most of its time. We can use profilers.
+
+Profiler: is a tool that measures the resources that our code is using, giving us a better understanding of what is going on.
+
+    In particular, to see how the memory is allocated and how the time is spent.
+
+    They are specific to each programming language:
+    - gprof to analyze a c program.
+    - cProfile module to analyze a python program.
+
+*** Using the Right Data Structures
+
+Think twice about creating copies of the structures that we have in memory. If the structures are big, it can be pretty expensive to create those copies.
+
+**** Lists
+Lists in python
+ArrayList in Java
+Vector in C++
+Array in Ruby
+Slice in Go
+
+Lists. Fast to add or remove elements at the end. Adding or removing elements in the middle can be slow because all the elements that follow need to be repositioned. Fast to access an element at an specified position but slow if the element is at an unknown position because it requires to go through the whole list.
+**** Dictionaries
+Dictionary in Python
+HashMap in Java
+Unordered Map in C++
+Hash in Ruby
+Map in Go
+
+General rule: If you need to access elements by positions, or will always iterate through all the elements, use a list to store them.
+
+    E.g. all computers in the network, all employees in the company, or all products currently on sale.
+
+General rule: If we need to look up the elements using a key, we'll use a dictionary.
+
+    E.g. Data from one user using an username, ip associated to a computer using a hostname, data assiciated to a product using the internal product code.
+*** Expensive Loops
+Expensive actions inside a loop get multiplied by the times the loop will get repeated.
+
+To improve performance, do the actions that can be done outside the loop to avoid running them every time.
+
+Also, break loops as soon as the data we are looking for is found.
+*** Keeping Local Results
+Parse files outside the loop. But if the script is still taking too long and you use it regularly, consider using a cache of the information you need. For example, create a cache once a day with the information such as how much memory was used over the last month. But other times, having a correct recent value is important such as monitoring the health of the computers to alert when something crosses a threshold, checking stock levels to see if there is enough product to sell, or checking if a username already exists in a network where you are trying to create a new one.
+
+Strategies:
+- Update the cache whenever it is out-of-date by checking the time it was last modified and the time the file it caches was modified so it is never out-of-date.
+- If there is no way of checking this, consider caching the data once per month/day/hour/minute.
+
+
+Also consider these:
+- How often do we expect the data to change
+- How critical it is to have the latest data
+- How often will the program be executed
+
+A cache can be a file, variable, data structure.
+*** Slow Script with Expensive Loop
+
+To get the time it takes to run a script use:
+
+    '$ time ./send_remionders.py |2020-01-13|Example|test1'
+
+        this will output three times: real, user, sys.
+            real: also call wall-clock time, is the actual time it took to execute the command.
+            user: is the time spent doing the operation in the user space.
+            sys: is the time spent doing system level operations.
+
+                user + sys is not always equal to real because the computer might have been busy doing other things.
+**** Tip
+Another profiler for python is called 'pprofile3':
+
+    '$ pprofile3 -f callgrind -o profile.out ./send_reminders.py "2020-01-13|Example|test1"'
+
+You can then use a program called 'kcachegrind' to look at the contents of the profile.out file.
+
+    '$ kcachegrind profile.out'
+** When Slowness Problems Get Complex
+*** Parallelizing Operations
+For example, when the computer is waiting for a slow IO, other work can take place.
+
+There is a whole computer science about writing programs that do operations in parallel called 'Concurrency'.
+
+Our OS handles the processes in our computer. The OS also handles which CPU core gets which process. These processes get executed in parallel. Each process gets its own memory allocation and does its own IO calls.
+
+You could run the same script with different inputs and let the OS handle the concurrency.
+
+A process that uses a lot of CPU, another that uses a lot of network IO, and another that uses a lot of disk IO can run at the same time with little or no interference with each other.
+
+Threads: let us run parallel task inside a process. Threads can share some of its memory to other threads in the same process. This isn't handle by the OS.
+
+There is a point where running too many operations in parallel can actually slow down the processes. That is because the CPU or disk might spend more time switching between tasks so that the benefits get outweighed by this time.
+
+
+**** Tip
+Threading and Asyncio: these modules lets us specify which parts of the code we want to run in separate threads or as separate asynchronous events, and how we want the result of each to be combined in the end.
+
+Depending on the implementation, it might happen that all threads get executed in the same CPU processor. If you want to use more CPU processors, you will need to separate the code into fully separate processes.
+
+*** Slowly Growing In Complexity
+Parsing large files can taka a lot of time. Instead, using a SQLite file allows you to run a query without needing to run a database server.
+
+Keeping all the data in one file can be slow (if there is a lot of data) so moving to a full-fledged database server, probably running in another machine. However, if the service keeps growing in popularity (users), the database server might no be enough. In this case, you might want to add a cache like 'memcached' which stores the most common query results on RAM to avoid running a query on the database.
+
+If a website is used a lot, you might want to use a caching service like 'Varnish' which would speed up the load of dynamically created pages. And if this is still not enough, you might want do distribute the load to different machines and use a load balancer to distribute the requests. This can be done "in house" by having multiple computers and by adding computers as necessary OR it might be easier to use virtual machines running in the cloud that can be added or removed as the load sustained by the service changes.
+
+Check how the service grows and decide on the best technologies to solve any arising problems.
+*** Dealing with Complex Slow Systems
+In large complex systems, there are many computers interacting with each other.
+
+E.g. An e-commerce website: A web server interacts directly with the external users, and the database which is accessed by the code that handles any request generated from the website. There can also be other services in place such as a billing system, fulfillment system, or a reporting system. There also should be backup, monitoring services, and testing.
+
+    If such system is under-performing, you want to find the bottleneck. Always a good idea to invest in the monitoring system. The problem can be network IO, disk IO, or CPU. To improve disk IO performance, consider using a cache. If the bottleneck is the CPU, consider adapting the code to work in a distributed system (more computers).
+
+
+**** Using Threads to Make Things Go Faster
+E.g. You have an e-commerce site that requires to create thumbnails from their thousands of products. You want to make sure this is done as fast as possible. So you decide to use multiple threads:
+    You need the concurrent.futures module. Then you need to create an executor.
+
+        Executor: The process that's in charge of distributing the work among different workers.
+        concurrent.futures: A module that provides a couple of different executors; one for using threads and another for using processes.
+
+        *Using Thread*
+
+            from concurrent import futures
+
+            executor = futures.ThreadPoolExecutor()
+
+            for i in range(10**200):
+                some more code here
+            # Instead of calling the process_file function directly, it is called using the executor.
+            # Use the name of the function followed by its parameters.
+            # The executor will run the tasks in parallel, using threads
+                executor.submit(process_file, root, basename)
+
+            # However, the loop will exit as soon as the executor schedules all the tasks,
+            # We have to tell the code to wait until all tasks are finished.
+            print('Waiting for all threads to finish')
+            executor.shutdown()
+
+        *Using Processes*
+            from concurrent import futures
+
+            executor = futures.ProcessPoolExecutor()
+
+            for i in range(10**200):
+                some more code here
+            # Instead of calling the process_file function directly, it is called using the executor.
+            # Use the name of the function followed by its parameters.
+            # The executor will run the tasks in parallel, using threads
+                executor.submit(process_file, root, basename)
+
+            # However, the loop will exit as soon as the executor schedules all the tasks,
+            # We have to tell the code to wait until all tasks are finished.
+            print('Waiting for all threads to finish')
+            executor.shutdown()
+
+
+        when using '$ time ./somefile.py', the 'user' time considers the processing time of all threads, in all the processors used.
+
+        Threads in python use a bunch of safety features to avoid having two threads writing the same variable. Processes uses more CPU.
+
+**** Useful links
+https://realpython.com/python-concurrency/
+https://hackernoon.com/threaded-asynchronous-magic-and-how-to-wield-it-bba9ed602c32
+*** Module review
+identify the bottleneck
+Avoid expensive operations in code.
+Create a cache when possible/required.
+Parallelize operations
+*** Other useful links
+rsync: backup regularly https://www.linuxtechi.com/rsync-command-examples-linux/
+* Week 3: Crashing Programs
+** Why Programs Crash
+*** Systems That Crash
+E.g. Blue screen of death
+
+- Reduce the scope of the problem
+  - Look at the logs
+  - Does this happen reliably?
+  - Does it only happen in this computer?
+  - Is it a hardware problem?
+
+You can change hardware parts (HDD, RAM, graphics card, sound card, etc) from spare computers to see if the system still crashes.
+
+It might also be a OS problem. Finding the specific problem might be hard so it can be easier to reinstall the OS entirely.
+**** Tip
+It might be a RAM issue. The value that it writes is different to what it reads.
+
+    Use 'memtest 86'. Run this tool at boot instead of the OS.
+*** Understanding Crashing Applications
+
+Look at the logs:
+On linux: open the systen log files and VAR log, user log files, or the .xsession errors file.
+On MacOS: use the console app.
+On Windows: use event viewer.
+
+Look at the time when the application crashed. Sometimes the errors are self-explanatory.
+Other times, the errors are cryptic.
+
+To get more information on the error, open the application in debugging mode. This will provide more information.
+
+If there is no information from the application, use other tools to see what the application is doing. For example, system calls:
+    On linux: strace
+    On MacOS: dtruss
+    On Windows: Process Monitor
+
+If the program used to run and it is now crashing, look at what changed in the system.
+
+It is also ALWAYS useful to have a replication case. For this, you might want to run the application in its default configuration and add the local configuration in an incremental way.
+
+In summary, to find the root cause of a crashing application, we'll want to look at all available logs, figure out what changed, trace the system or library calls the program makes, and create the smallest possible reproduction case.
+*** What to do when you can't fix the program?
+_Wrapper_: A function or program that provides a compatibility layer between two functions or programs, so they can work well together.
+
+    Using wrappers is very common whenever the input and output formats do not match.
+
+    If the application requires another OS but it is not possible to change it (maybe there is another service that requires a different OS), you could run the application using a virtual machine or a container. It allows you to run the application on its own environment.
+
+Sometimes, we cannot prevent an application from crashing, so we may need to start it back again when it does crash. We can use a watchdog.
+
+_Watchdog_: A process that checks whether a program is running and, when it's not, starts the program again.
+
+    A script that checks periodically if the program is running and if not, start it again.
+
+        Viable solution for when availability is more important than running continuously.
+
+Always report the bug to the software developers. Share the good reproduction case and answer the questions:
+
+    What were you trying to do? What were the steps you followed? What did you expect to happen? What was the actual outcome?
+*** Internal Server Error
+500 error: usually means that something on the server side crashed.
+
+On linux based systems, logs are logated on /var/log/
+
+**** Tip
+use '$ ls -lt' command to show recent files
+
+Port 80 is the default web serving port.
+To find which software is listening at which port, we can use the 'netstat' command.
+
+    Flags:
+        -n print numerical addresses instead of resolving the host names.
+        -l to only check out the sockets that are listening for a connection
+        -p to print the process ID and the name to which each socket belongs to.
+
+Configuration files in linux are stored in the /etc/ directory.
+*** Useful links
+Reading logs:
+- Windows: https://www.digitalmastersmag.com/magazine/tip-of-the-day-how-to-find-crash-logs-on-windows-10/
+- MacOS: https://www.howtogeek.com/356942/how-to-view-the-system-log-on-a-mac/
+- Linux: https://www.fosslinux.com/8984/how-to-check-system-logs-on-linux-complete-usage-guide.htm
+Tools for diagnosing problems:
+- Windows (process monitor):https://docs.microsoft.com/en-us/sysinternals/downloads/procmon
+- MacOS (trace system calls): https://etcnotes.com/posts/system-call/
+- Linux (strace):https://www.howtoforge.com/linux-strace-command/
+** Code that Crashes
+*** Accessing Invalid Memory
+A common problem that happens when an application tries to access invalid memory.
+
+Explanation: The OS allocates memory to each process. The OS also keeps tabs on what memory was allocated where. The OS also prevents an application to access (read/write) some other application's memory.
+
+Accessing invalid memory means that the process tried to access a portion of the system's memory that wasn't assigned to it.
+
+    These errors happen when there is a programming error that leads an application to read or write to a memory address outside of the valid range. When this happens, the OS will raise an error like 'segmentation fault' or 'general protection fault'.
+
+    These programming errors usually happen with low-level programming languages like C or C++ (the programmer needs to take care of requesting the memory that the program is going to use and then giving that memory back once it is not needed anymore).
+
+    Pointers: The variables that store memory addresses.
+
+    Common programming errors that lead to this kind of errors: forgetting to initialize a variable, trying to access a list element outside of the valid range, trying to use a portion of memory after having given it back, and trying to write more data than the requested portion of memory can hold.
+
+A good way to diagnose what is making the program crash is to attach a debugger. This means that the executable binary needs to include extra information needed for debugging (i.e. debugging symbols) (e.g. name of the variables and functions being used).
+
+    These debugging symbols are usually omitted in the binary to save space. To add them, you need to recompile the binary or download the debugging symbols of the software if they're available.
+
+    In Linux distributions like Debian or Ubuntu, ship separate packages with the debugging symbols for all packages in the distribution.
+
+        To debug in this case, first download the debugging symbols, then attach a debugger to it and see where the fault occurs.
+
+    Some windows software can also generate debugging symbols in a separate PDB file.
+
+    One of the trickiest things about this invalid memory business is that we are usually dealing with undefined behavior.
+
+        Undefined behavior: The code is doing something that is not valid in the programming language.
+
+On higher level programming languages such as python, the interpreter will almost certainly catch these problems itself and will throw an exception instead of letting the invalid memory access reach the OS.
+
+*What to do if you find the problem?*
+Fix it on the code and/or report it to the developers.
+
+**** Tip
+
+To understand problems related to handling invalid memory, 'valgrind' is a very powerful tool that can tell us if the code is doing any invalid operations no matter if it crashes or not. E.g. it will tell us: if the code is trying to access a variable before initializing it, if the application is failing to free some of the memory requested, if the pointers are pointing to an invalid memory address, and more.
+
+    'valgrind' is available on Linux and MacOS.
+    'Dr Memory' is a similar tool available on Windows and Linux.
+*** Unhandled Errors and Exceptions
+Errors such as 'IndexError', 'TypeError', or 'DivisionByZero'.
+
+On high level programming languages like ruby or python, the interpreter running will print the type of error, the line that caused the failure, and the traceback. However, the interpreter message might not be enough to find the error.
+
+On Python, we can use 'pdb' interactive debugger to execute the code line by line or to see how the variables change.
+
+To debug code using print statements, we cam use the logging module to change how much should be printed on the screen (e.g. debugging messages, warnings, or only error messages). The output can be changed by simply passing a parameter or changing the configuration.
+
+Ideally, you want to let the user know what to do if there is an error. Add details of the errors. Handle the errors.
+*** Fixing Someone Else's Code
+Read the comments and documentation. Writing good comments is an excellent practice. It is a great help for other people (and your future self).
+
+Adding comments to someone else's code is also great.
+
+Well written cases are also useful to understand what a function does and what use-cases were not contemplated.
+
+Writing tests for somebody else's code is also a great way to get an understanding on what the code is doing and improves the quality of the code
+*** Debugging a Segmentation Fault
+Core Files: Store all the information related to the crash so that we, or someone else, can debug what's going on.
+
+Segmentation fault:
+To generate a core file, use '$ ulimit -c unlimited' which tells the OS to create core files of any size. After this. you can now run the program that was causing a segmentation fault which will create a core when it crashes. Finally, look at the core file in the current directory. To do this, you can use '$ gdb -c core example' ('core' is the name of the core file and 'example' is the location of the executable that causes the segmentation fault)
+
+    Within 'gdb' you can type 'backtrace' to see where the problem originated.
+
+    Within 'gdb' you can type 'up' to move to the calling function in the back-trace and check out the line and parameters that caused the crash.
+
+    Within 'gdb' you can type 'list' to show the lines around the current one.
+
+    Within 'gdb' you can type 'print x' to check the value of 'x' (or any other variable available) (this also works with lists such as x[2]).
+
+
+When talking about memory locations, hexadecimal numbers are used which indicate addresses in memory where the data is stored.
+
+    '0x0' is a pointer to zero, also known as null pointer. Which usually signals the end of data structures in C.
+*** Debugging a Python Crash
+As mentioned, segmentation faults are common in programs written in languages like C or C++.
+
+In languages like Python, we usually deal with unexpected exceptions.
+
+'pdb3' is a python debugger.
+
+The debugger gets positioned at the very first line and waits for us to tell it what to do.
+    'next' will run the next line in the code.
+    'coninue' will run the next lines until the code finishes or crashes.
+
+    Within the debugger, you can print variables AFTER the program crashes! Very useful.
+
+There are other debugger options suchs as:
+    Setting breakpoints to let the code run until a certain line is executed.
+    Setting a watch-points which lets the code run until a variable or expression changes.
+
+_FYI_
+'\ufeff' represents the Byte Order Mark (or BOM) which is used in UTF-16 to tell the difference between a file stored using little-endian and big-endian. Normally, we would be using UTF-8 but some programs still use UTF-16 which may cause some errors.
+
+You can change the encoding of a file when open like this:
+
+    with open(options.filename, 'r', encoding='utf-8-sig') as products:
+        # some more code here
+*** Resources for debugging
+
+https://realpython.com/python-concurrency/
+
+https://hackernoon.com/threaded-asynchronous-magic-and-how-to-wield-it-bba9ed602c32
+
+https://stackoverflow.com/questions/33047452/definitive-list-of-common-reasons-for-segmentation-faults
+
+https://sites.google.com/a/case.edu/hpcc/home/important-notes-for-new-users/debugging-segmentation-faults
+*** Awesome python projects (mostly web frameworks)
+minecraft written in python
+https://github.com/fogleman/Minecraft
+object-oriented HTTP framework
+https://github.com/cherrypy/
+web framework
+https://github.com/pallets/flask
+web framework
+https://github.com/tornadoweb/tornado
+coding answers in the command line
+https://github.com/gleitz/howdoi
+web framework
+https://github.com/bottlepy/bottle/blob/master/bottle.py
+SQL python toolkit
+https://github.com/sqlalchemy/sqlalchemy
+** Handling Bigger Incidents
+*** Crashes in Complex Systems
+When something big fails, such as a web server, check the logs (as always) and check the services.
+Whenever possible, rollback the changes that you suspect are causing the issue (even if you are not sure). If the infrastructure allows easy rollbacks, try them before doing any further investigation. Why? You will get it back to a working state or dismiss a possible fault.
+
+A good practice to give good log error messages so that when something goes wrong, you or anyone else working with the code knows what went wrong and why.
+
+It is also a good idea to have stand-by servers in case you need to use them or have a tested pipeline that allows new servers can be deployed on demand.
+
+A lot of companies today have automated processes for deploying services to virtual machines running in the cloud. This can take a lot of time to set up but once it is done, it is very easy to increase or reduce the amount of servers you are using.
+*** Communication and Documentation During Incidents
+Write down what you have tried or how you fix the problem -> this can save a lot of time when you revisit the issue.
+
+It is always a good idea to document what you are doing in a bug or ticket. If not available, use a doc, txt file, wiki, or whatever you have access to. This might seem unnecessary but it can be very useful.
+
+If there is a team involved in fixing an issue, it is a good idea to have a communications lead.
+
+    Communications lead: Needs to know what's going on, and provide timely updates on the current state and how long until the problem's resolved. The can act as a shield for questions from users allowing the team to focus on solving the problem.
+
+There should also be another person in charge of delegating the different tasks to the team members. This person is often called incident commander or incident controller.
+
+    Incident commander/incident controller: Needs to look at the big picture and decide what's the best use of the available resources.
+
+Once the problem is resolved, you want to document these points:
+    - The root cause
+    - How you diagnosed the problem and found that root cause
+    - What you did to fix the issue
+    - What needs to be done to prevent the problem from happening again.
+
+*** Writing Effective Postmortems
+Postmortems: Documents that describe details of incidents to help us learn from our mistakes.
+
+    Not used to blame but to document:
+    - what happened
+    - why it happened,
+    - how it was diagnosed,
+    - how it was fixed (short and long term)
+    - what to do to avoid the same event in the future.
+
+Also include what went well. This is done to show that the systems in place are effective and justifies keeping those systems running.
+
+* Week 4: Managing resources
+** Managing Computer Resources

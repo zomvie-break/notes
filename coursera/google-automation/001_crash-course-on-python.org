@@ -1,0 +1,401 @@
+#+TITLE: 003 Python Crash course
+#+AUTHOR: VICTOR VAQUERO
+
+* Useful links:
+https://docs.python.org/3/tutorial/index.html
+https://greenteapress.com/thinkpython/thinkpython.pdf
+https://docs.python.org/3/reference/index.html
+https://jupyter4edu.github.io/jupyter-edu-book/jupyter.html
+https://pypi.org
+
+* Week 1: Hello Python!
+** Introduction to programming
+Basically, do not expect to have your code running immediately after writing.
+Once you learn a programming language, learning another one is easier.
+
+Script: A program that's short, simple, and can be written very quickly.
+
+Automation: The process of replacing a manual step with one that happens automatically.
+
+Benefits: Consistency.
+Cons: Not always cost effective, some tasks require creativity.
+
+** Introduction to Python
+Interpreter: the program that reads and executes code.
+
+Syntax: rules to follow (think of grammar in English).
+Semantics: meaning (what the code is meant to do).
+
+*** Why is Python relevant for IT?
+It is super popular. Released in 1991, written by Guido van Rossum. A lot of libraries. Easy to understand and easy to understand. There is almost always someone on the Internet who's trying to do what you are doing.
+
+** Hello world
+print("Hello World!")
+
+Keywords: Reserved words that are used to construct instructions (e.g. if, for, while).
+Here is a list with a bunch of python's keywords: https://www.programiz.com/python-programming/keyword-list
+
+* Week 2: Basic Python Syntax
+** Expressions and Variables
+Data types: e.g. String, integers, floats, booleans.
+An easy way to know the data type of a variable is to use " print(type("this is a string"))" which in this case outputs that the variable is a string.
+
+Variables: Names that we give to certain values in our programs.
+Expression: A combination of numbers, symbols, or other variables that produce a result when evaluated.
+
+Variable restrictions:
+- Don't use keywords or functions that python reserves for its own.
+- Don't use spaces.
+- Must start with a letter or an underscore.
+- Must be made up of only letters, numbers, and underscores.
+
+Implicit conversion: The interpreter automatically converts one data type into another.
+Explicit conversion: is where we manually convert one data type to another by calling the relevant function for the data type we want to convert to.
+** Functions
+Use 'def' keyword to start a function, followed by the name and parameters of the function. Lastly, we put a colon after the parameters.
+After the colon, the function's body starts but it is delimited by indentation.
+
+return keyword: used in functions when we want the function to pass data back.
+
+None: a special data type in python used to indicate that things are empty or that they returned nothing.
+
+Good style can make code look almost like natural human language. Good style can also reduce errors since it is easier to understand and maintain. Try to make your code self-documenting. Whenever this is not possible, add a comment using the '#' character.
+
+** Conditionals
+
+*** Comparison and Equality Operators
+Greater than, less than, equals to, not equal to ">,<,==,!=".
+UPPERCASE letters are alphabetically sorted so that they come before lowercase letters such that "cats" > "Cats" is true.
+
+*** Logical operators
+'and', 'or', 'not' are logical operators.
+
+*** Branching
+The ability of a program to alter its execution sequence.
+'if' blocks will evaluate the code within it if the comparison is true.
+'else' can also be used to run if the condition in the 'if' block was false.
+The function will exit once the function reaches a 'return' keyword.
+'elif' is used as an 'if' block which will execute if the preceding 'if' statement was false.
+
+* Week 3: Loops
+** While loops
+While loops: instruct your computer to continuously execute your code based on the value of a condition.
+
+To break an infinite loop, you can use break within the code to interrupt the loop.
+** For loops...
+They use the following structure:
+for x in range(x):
+or
+for value in values:
+where values is a list.
+For loops can be used to iterate over files in a directory, the lines in a file, the processes running on a machine, and much more...
+As an IT specialist, you can use these for loops to copy files to machines, process the contents of files, automatically install software, and a lot more...
+
+As a general rule, use for loops when there's a sequence of elements tat you want to iterate. Use while loops when you want to repeat an action until a condition changes.
+
+Watch out! pass a list of elements when trying to iterate it using a for loop. Use this:
+for i in ["Victor"]:
+    print(i)
+Not this:
+for i in "Victor":
+    print(i)
+
+
+*** print() tip
+normally, after using the print() function, a new line is created. Sometimes that is not what you want to do, so we can pass a second parameter to the print() function called 'end'. For example, if you want to add a space character instead of '\n' you use:
+print("this is the first parameter", end=" ")
+
+** Recursion
+Recursion: The repeated application of the same procedure to a smaller problem.
+"A recursive function must include a recursive case and base case. The recursive case calls the function again, with a different value. The base case returns a value without calling the same function." --  from coursera.org
+
+This one is pretty cleaver IMHO.
+
+def factorial(n):
+    if n < 2:
+        return 1
+    return n * factorial(n-1)
+
+Recursion can be used in when looking into directories on a computer (directories are a recursive structure) to find out how many files are in the directory, including subdirectories and sub-subdirectories and so on...
+
+Python limit of recursive calls is 1,000.
+
+* Week 4: String, Lists, and Dictionaries
+** Strings
+String: A data type in python that is used to represent a piece of text.
+
+You can use double quotes or single quotes, it does not matter as long as they match,
+we can multiple strings:
+"example"*3 outputs "exampleexampleexample"
+len("string") can give us the length of a string.
+
+String indexing: This operation lets us access the character in a given position or index using square brackets '[]'  and the number we want
+name = "James"
+hence, "name[1]" is "a"
+you can also use negative indexes so that "name[-2]" is 'e'
+You can also use slices so that 'name[2:4]' is  'me'. When slicing, the second number goes to one less than the specified number (in this case, it goes to the index 3 and excludes index 4).
+
+Strings in python are IMMUTABLE (they cannot be modified)
+
+Method: A function associated with a specific class.
+*** Useful string methods
+.index("query") -- will return the index (if any) of the query, otherwise it will throw an error.
+"x" in stringVariable will return a boolean. True if 'x' is in "stringVariable". (useful to use before .index('x')).
+.lower() turns 'YES' to 'yes'
+.strip() removes spaces and tabs and new line characters. (also .rstrip() and .lstrip() to remove white characters to the right and left of the string, respectively).
+.count('x') returns how many times 'x' is in the string.
+.isnumeric() returns a boolean depending on whether the string only contains numbers or not.
+.split('x') will return a list of strings split by 'x'
+.endswith('x') will return a boolean depending on whether the string ends with 'x'.
+string.isalpha() Returns True if there are only alphabetic characters in the string. If not, returns False.
+string.replace(old, new) Returns a new string where all occurrences of old have been replaced by new.
+delimiter.join(list of strings) Returns a new string with all the strings joined by the delimiter. E.g. " ".join(['this', 'is', 'a', 'phrase','joined', 'by','spaces' ]) will output: 'This is a phrase joined by spaces.'
+
+For more string methods, visit: https://docs.python.org/3/library/stdtypes.html#string-methods
+
+*** Formatting Strings
+example:
+name="Manny"
+number=len(name)*3
+print("Hello {}, your lucky number is {}.".format(name,number))
+or
+print("Hello {name}, your lucky number is {number}.".format(name=name,number=number))
+
+You can also make the format  method print only two decimals, e.g.
+print("Base price: ${:.2f}. With tax: ${:.2f}.".format(price, with_tax))
+where ':.2f' is a formatting expression. 'f' is for float.
+Another example of formatting expressions is '{:>6.2f}' which means align to the right for six spaces and use two decimals for the float.
+
+
+| Expr    | Meaning                                      | Example                          |
+| {:d}    | integer value                                | '{:d}'.format(10.5) → '10'       |
+| {:.2f}  | floating point with that many decimals       | '{:.2f}'.format(0.5) → '0.50'    |
+| {:.2s}  | string with that many characters             | '{:.2s}'.format('Python') → 'Py' |
+| {:<6s}  | string aligned to the left that many spaces  | '{:<6s}'.format('Py') → 'Py  '   |
+| {:.>6s} | string aligned to the right that many spaces | '{:<6s}'.format('Py') → '   Py'  |
+| {:.^6s} | string centered in that many spaces          | '{:^6s}'.format('Py') → ' Py '   |
+
+Before python2.6, the '%' character was used similarly to the {} in python 3.
+
+*** Formatted string literals
+Feature added in python3.6 and isn't used a lot yet. But the idea is that you us 'f' or 'F' before the quotes in a string. The important difference with the format method is that it takes the value of the variables from the current context, instead of taking the values from parameters so that this works:
+print(f'Item: {item} - Amount: {amount} - Price: {price:.2f}')
+
+** Lists
+A data type. A collection of items. Indicated by square brackets [].
+lists and strings are similar because both are sequences. However, lists are MUTABLE, meaning they can be changed.
+x = ["Now", "we", "are", "cooking"]
+x[0] outputs "Now"
+
+*** List methods
+x.append("x") appends "x" to the end of the list.
+x.insert(2, "b") inserts element "b" at index 2 (in this case). If used an index higher than the length of the list, the element is added to the end (no error).
+x.remove("x") removes the first occurrence of the element in the lest, in case the element is not in the list, a ValueError will occur.
+x.pop(3) returns the element at index 3, and removes it from the list.
+x[2] = "apple" replaces the element at index 2.
+x.sort() sorts the items in the list.
+x.reverse() reverses the order of the items.
+x.clear() removes all the items of the list.
+x.copy() creates a copy of the list.
+x.extend(other_list) appends all the elements of the other_list to the end of the list, x.
+*** Tuples
+Sequences of elements of any type, that are IMMUTABLE.
+You initialize tuples with parenthesis () instead of []. The position of the elements inside the tuple have meaning.
+Return values from functions are usually tuples.
+You can unpack them. E.g.
+hours, minutes, seconds = convert_seconds(869387)
+
+*Enumerate* function returns a tuple with the index and element in a list. E.g.
+for index, element in enumerate(elements):
+    print("{} - {}".format(index, element))
+
+*** list comprehensions
+list comprehensions let us create new lists based on the sequences or ranges. E.g.
+to create a list of multiples of sevens
+multiples = [ x*7 for x in range(1,11)]
+this outputs [7,14,21....63,70]
+You can also add if statements within the list comprehension like this:
+z = [x for x in range(0,101) if x % 3 == 0]
+this outputs [0,3,6,9,12...,96,99]
+
+Sometimes list comprehensions can help the understanding of the code, sometimes not.
+
+** Dictionaries
+Like lists, dictionaries are used to organize elements into collections. Unlike lists, elements in dictionaries are not accessed using their position. Instead, dictionaries us keys:values pairs. You don't have to use integers as keys, you can also use strings, tuples, floats, etc...
+
+You initialize a dictionaries similarly to lists and tuples but using {} instead. E.g.
+file_counts = {'jpg':12, 'csv':2, 'txt':15, 'py':305}
+and you access values using the keys. E.g.
+file_counts['jpg'] outputs 12
+
+You can also use 'in' keywords, e.g.
+'html' in file_counts
+outputs false
+'py' in file_counts
+outputs true
+
+you can add elements like this:
+file_counts['cfg'] = 7
+if you use a key that is already in use, the value associated to the key gets updated. Keys are unique within the dictionary.
+
+to delete a key:value pair use this:
+del file_counts['cfg']
+This will delete 'cfg':7 from the dictionary
+
+To iterate over the contents of a dictionary, you use:
+    for things_in_dictionary in file_counts:
+        print(things_in_dictionary)
+this will print the keys in the dictionary,.
+
+Or you can unpack the tuple, e.g.
+    for ext, amount in file_counts.items():
+        print(f"There are {amount} files with the .{ext} extension.")
+
+If you want to access only the keys or values of the dictionary, you can use dictio.keys() and dictio.values(). They return a special data type but can be iterated like a list.
+
+Since keys are unique, dictionaries are excellent for counting elements and analyzing frequency.
+
+A nice use-case is counting how many occurrences of each error type are in the log files of your server.
+
+When do you use lists or dictionaries? If it is only a list, you can use a list, dah, but if you have pairs of information, you might prefer to use a dictionary. In general, you want to use dictionaries when you plan on searching for a specific element. You can store any data type in lists. You can store any data type in the values of a dictionary, but the keys are restricted to inmutable data types (e.g numbers, booleans, strings, tuples) so you cannot use lists or dictionaries as keys.
+
+Another data type is *'Set'* which is used when you want to store a bunch of elements and be certain that they're only present once (like a list but order does not matter and every element is unique).
+*** Dictionary methods
+_Operations_
+~len(dictionary)~
+~for key in dictionary:~
+~for key, value in dictionary.items():~
+~if key in dictionary~
+~dictionary[key]~ -> access the value linked to that key.
+~dictionary[key] = 'something'~ -> updates the key:value or creates it.
+~del dictionary[key]~-> deletes the key:value pair in the dictionary.
+_Methods_
+~dict.get(key, default)~ Returns the value associated with the key, or default if the key is not present.
+~dict.keys()~ Returns a sequence containing the keys of the dictionary.
+~dict.values()~ Returns a sequence containing the values of the dictionary
+~dict.update(other_dictionary)~ Updates the dictionary using another dictionary. The existing entries will be replaces, new entries will be added.
+~dict.clear()~ Removes all the items of the dictionary.
+* Week 5: Object Oriented Programming (OOP)
+** Object Oriented Programming
+OOP is a way to think and implement our code.
+OOP is a flexible, powerful paradigm where classes represent and define concepts, while objects are instances of classes.
+
+Almost everything in python is an object (lists, strings, dictionaries are objects).
+
+The core concept of OOP comes down to attributes and methods associated with a type. The attributes are the characteristics associated with a type, and the methods are the functions associated to a type.
+
+_Tip_
+To list all the attributes and methods of a class call the dir function and pass an instance of the class as a parameter, e.g.
+~dir("")~
+Special methods are named using __, e.g. ~__len__~
+
+_Tip 2_
+Call the help function on any instance to get more info. e.g.
+~help("")~
+
+_Tip 3_
+In the documentation, optional parameters of functions are in square brackets, [].
+
+To start a class, use the 'class' reserved class. The class name is usually capitalized. e.g.
+class Apple:
+    color = ""
+    flavor = ""
+
+To create a new instance of a class, you can use this:
+~jonagold = Apple()~
+
+And this is how you modify its attributes (through dot notation).
+
+~jonagold.color="red~
+
+** Classes and Methods
+Methods: Functions that operate on the attributes of a specific instance of a class.
+
+To define a method in a class:
+class Piglet:
+    name = "piglet"
+    def speak(self):
+        print("oink oink. My name is {}".format(self.name))
+
+hamlet = Piglet()
+halmet.name = "Hamlet"
+halmet.speak() -> This ouputs "oink oink. My name is Hamlet"
+
+In this case, the function is a method of the class.
+
+_Constructors_
+
+Is the method that gets invoked whenever you call the name of the class. It is the ~__init__(self, ...)~ method.
+
+class Piglet:
+    def __init__(self):
+       self.name = name
+    def speak(self):
+        print("oink oink. My name is {}".format(self.name))
+
+hamlet = Piglet('Hamlet')
+halmet.speak() -> This ouputs "oink oink. My name is Hamlet.
+
+
+
+_str method_
+
+This is python's toString() method which can be overwritten like this (within the class).
+def __str__(self):
+    return 'This is the string you want to use'
+
+Whenever you print an object using the default __str__() output, this will print the location of the object on the computer's memory.
+
+_Documentation_
+
+Docstring: it is a brief text that explains what something does.
+you do this, within a function, typing """ (three double quotes) at the beginning and at the end of the text, indented as the body of the function. This can also be done for classes and methods, always indented as the body of the class/method.
+
+__Jupyter Notebooks_
+Special type of files. Open source.
+
+** Code reuse
+_Inheritance_
+class Fruit():
+    def __init__(self, color, flavor):
+        self.color = color
+        self.flavor = flavor
+class Apple(Fruit):
+    pass
+class Grape(Fruit):
+    pass
+
+These classes, Apple and Grape, inherit from their parent class, Fruit. The inherit the init method.
+
+_Composition_
+it is having another class within a class, but they are not related (inheritance). You may want to use other objects' attributes and methods in your code. Two different classes that are related, but there is no inheritance going on.<- That is composition.
+
+_tip_
+When adding lists to classes, add them in the init constructor, otherwise, all the instances of that class will end up with the same list. This can happen with all the attributes that are mutable (list, dictionaries). Always initialize mutable attributes in the constructor.
+
+_Python modules_
+Modules are separate files. Modules can be used to organize functions, classes, and other data together in a structured way which can then be imported into our own code for extra functionality. Python already comes with a lot of ready-to-use modules called the python standard library. E.g.
+the random package
+import random
+random.randint(1,10)
+
+the datetime module
+import datetime
+now = datetime.datetime.now()
+
+* Week 6: Final project
+** Writing a script from the ground up
+_Tip_
+listx.sort() sorts the list 'listx'
+sorted(listx) returns a sorted list of 'listx' and the original is kept untouched.
+This methods can also be sorted by a function such as len() as key e.g. ~sorted(listx, key=len)~
+
+_Tip_
+Have different functions, one that process the data and another that prints the data to the screen. This is because we might want to change how we print or process the data and it is easier to modify it in one place.
+
+** Typical workflow
+1. Understand the problem statement.
+2. Research available options.
+3. Plan your approach.
+4. Write your code.
+5. Execute.
