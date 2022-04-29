@@ -689,3 +689,206 @@ Also include what went well. This is done to show that the systems in place are 
 
 * Week 4: Managing resources
 ** Managing Computer Resources
+*** Intro to Module 4: Managing Resources
+All resources in the computer are limited so we better make sure that the applications make the best use of these resources.
+*** Memory Leaks and How to Prevent Them
+Memory Leak: A chunk of memory that's no longer needed is not released.
+
+Memory leaks can cause the whole system to misbehave. Memory leaks can cause programs to swap constantly causing slowness.
+
+Python, Java, and Go manage memory for us. C and C++ does not. However, we still need to pay attention to how we manage memory.
+
+These languages (python, java, go) request the necessary memory when variables are created. Then they run a tool called Garbage Collector.
+
+Garbage collector: In charge of freeing the memory that's no longer in use. It looks at the variables in use and their memory and then checks if there are any portions of memory that are not being referenced by any variables.
+
+Memory leaks can be caused by device drivers or by the OS itself. In these cases, only a restart will release the memory.
+
+
+**** What to do if we suspect that a program has a memory leak?
+We can use a memory profiler to figure out how is the memory being used.
+
+- valgrind: for C and C++
+- python has many memory profilers and each is suited for different things.
+**** Tip
+    "It is important that we measure the use of memory first before we try to change anything, otherwise we might be optimizing the wrong piece of code.""
+
+    Make sure that you only keep the data that you actually need.
+*** Managing Disk Space
+Programs may need disk space for:
+- installed binaries and libraries
+- data stored by the application
+- cached information
+- logs
+- temporary files
+- backups
+
+Reasons why disk space runs out:
+- too much data in too little space
+- programs misusing the space allocated to them
+  - keeping temp files or caching information that does not get cleaned quickly enough or at all.
+
+If the hard drive is full, programs might suddenly crash while trying to write to disk and finding out that they can't.
+
+Full hard drives can even lead to data loss as some programs truncate a file before writing an updated version of it and then fail to write the new content.
+
+Solutions:
+- Uninstall applications that aren't used.
+- cleaning up old data that isn't needed anymore.
+- Add more hard drives.
+
+A common error is having a program logging error messages to the system log, over and over again.
+
+    This might happen because the OS keeps trying to start a program and fails because of a configuration problem.
+    Or it might also be possible that the logs are real, it is just the server has a lot of activity. In this case, a solution is to change the configuration of the tools that rotate the logs to make sure to keep only what you need.
+
+Another common error is to have an application leave temporary files because it didn't terminate cleanly.
+
+    Here, the solution is to fix the program to get rid of these temp files, but if that is not possible, you might need to create a script that gets rid of them.
+
+Another reason for running out of space is, ironically, deleted files. This happens because when a program opens a file, the OS lets that program read and write in the file, regardless if the file is marked as deleted (confusing, I know). That is why a lot of programs delete temporary files right after opening to avoid issues with cleaning them up later.
+
+    This can be a hard problem to diagnose because the deleted files won't show up like other files. To check for this specific condition, list the currently opened files and combine it with the files that we know are deleted:
+
+        '$ sudo lsof | grep deleted '
+*** Network Saturation
+The two most important factors that determine the time it takes to get the data over the network are the latency and the bandwidth of the connection.
+
+Latency: The delay between sending a byte of data from one point and receiving it on the other. Affected by the physical distance between the points and the number of intermediate devices between them.
+
+    If you are transmitting a lot of small pieces of data, you care more about latency than bandwidth, in this case, you'd like to have the server closer to the users of the service (ideally less than 50 ms and up to 100 ms in the worst case). On the other hand, if you are transmitting large chunks of data, you'd care more about bandwidth than latency.
+
+Bandwidth: How much data can be sent or received in a second. This is effectively the data capacity of the connection. The usable bandwidth to transmit data to and from a network service will be determined by the available bandwidth at each endpoint and every hop between them.
+
+    All connections to the internet on a computer share the same bandwidth. Each connection gets a portion of the bandwidth but the split isn't necessarily even. If there is a connection that is taking a lot of the bandwidth, a traffic jam might occur meaning that the latency can increase a lot because packets might get held back until there is enough bandwidth to send them.
+
+    Bandwidth is a limited resource so you'll need to be careful with how you share it among its users.
+
+Traffic shaping: A way of marking the data packets sent over the network with different priorities to avoid having huge chunks of data use all the bandwidth.
+
+Another thing to consider is that there is a limit on how many network connections can be established on a single computer. This is usually not a problem but there could be bugs in the software that causes to open way too many connections or by keeping old unused connections open. If this happens in a server, no new users will be able to conncet to the server until some of those connections are closed.
+*** Dealing with Memory Leaks
+Scroll buffer: Feature that lets us scroll up and see the things that we executed and their output.
+
+On 'top':
+
+    press 'shift + m' to order the process according to their memory usage.
+    RES is the dynamic memory that is preserved for the specific process.
+    SHR is for memory shared across processes.
+    VIRT is all the virtual memory allocated for each process.
+
+    It is usually fine to have a process with high VIRT. However, the one that usually indicates a problem is the RES column.
+
+If there is a script that is taking a lot of memory, it might be a good idea to use a memory profiler. In python , one memory profiler is the 'profile' from the 'memory_profile' module. Running memory profiles in multi-process applications in extra hard so it is better to use a simplified version of the code.
+
+
+Decorators: Used in python to add extra behavior to functions without having to modify the code. E.g '@profile' before the function declaration to tell the memory profiler that we want to analyze that function.
+
+*** Useful links
+https://realpython.com/python-concurrency/
+
+https://hackernoon.com/threaded-asynchronous-magic-and-how-to-wield-it-bba9ed602c32
+
+https://www.pluralsight.com/blog/tutorials/how-to-profile-memory-usage-in-python
+
+https://www.linuxjournal.com/content/troubleshooting-network-problems
+** Managing Our Time
+*** Getting to the Important Tasks
+To optimize time on IT, use the Eisenhower Decision Matrix. We split tasks in two different categories: urgent and important.
+
+|               | Urgent        | Not Urgent   |
+| Important     | ASAP          | Long term    |
+| Not Important | interruptions | distractions |
+
+Important and not urgent tasks: Invest in the future. Research new technologies. Technical debt.
+
+Technical debt: The pending work that accumulates when we choose a quick-and-easy solution instead of applying a sustainable long-term one.
+*** Prioritizing Tasks
+Make sure to have time available for the important and not urgent tasks. Sometimes everything seems important and urgent.
+
+To decide how to prioritize tasks, consider:
+1. Make a list of all the tasks that need to get done.
+2. Check the real urgency of the tasks.
+    To check for the most critical task, ask yourself: If any of these items don't get done today, will something bad happen?
+    Also consider: how many people are affected by what? Are there tasks that depend on another task?
+3. Assess the importance of each issue.
+4. How much effort they'll take.
+    An easy way to classify tasks is to categorize them in: small, medium, large.
+
+Consider working on the large tasks when you are less likely to be interrupted. Always work on important tasks. It is also important to take breaks.
+*** Estimate the Time Tasks Will Take
+Estimate based on how long similar projects take to complete. If the problem is big, divide the problem until you have pieces that feel similar to task you have completed before and simply add all the individual times to get an estimate of the total. Even then, this estimate is probably optimistic because integration also takes some time.
+
+Even then, this estimate might still be pretty inaccurate since it is impossible to anticipate new unknown bumps in the road.
+
+Finally, multiply this estimate with a factor based on previous estimates (say three since last time it took you three times more time than the estimate).
+*** Communicating Expectations
+Everyone has different ideas on how long things take. Communicate with the users about the circumstances and give them an idea of when will their problem be fixed.
+
+    Try to be clear and up front about when you expect the issue to be resolved.
+
+If the issue isn't resolved withing the first time expectation, explain why and what the new expectation should be.
+
+If the issue takes debugging and troubleshooting, giving an estimate is hard. But make sure to let user know when will they get and update and give them timely updates.
+
+If possible, it is a good idea to have users make their request on an issue tracking system. This will help reduce interruptions (no emails, messages, etc..).
+
+*** Useful links
+https://blog.rescuetime.com/how-to-prioritize/
+** Making Our Future Lives Easier
+*** Dealing with Hard Problems
+    "Everyone knows that debugging is twice as hard as writing a program in the first place. So if you're as clever as you can be when you write it, how will you ever debug it?" --Brian Kernighan
+
+It is better to code in a clear and simple way than in a clever but obscure way. Same thing applies to IT systems.
+
+_Tip_
+Write code in chunks and test them on the go.
+Keep the goal clear (write the test before).
+Ask other for help (but don't tell them what you have done so they can come up with new paths for you to explore)
+
+Rubber duck debugging: Explain the problem to a rubber duck.
+*** Proactive Practices
+    It is helpful to have infrastructure to test the changes before they get to the end users.
+
+        If we're the ones writing the code, one thing we can do is to make sure that our code has good unit tests and integration tests. Run them often, and make sure we know as soon as they fail (try continuous integration).
+
+        Have a test environment. This helps to check the software as seen by the users and to troubleshoot any problem.
+
+    Another good idea is to deploy software in phases or canaries so that if things go wrong, you limit the damage.
+
+    Having infrastructure to be able to easily roll back to the previous version ASAP is also a good idea.
+
+    Have good debugging logs.
+
+    Have a *centralized logs collection*: A special server that gathers all the logs from all servers, or even all the computers in the network.
+
+    Have a monitor system to check the state of things.
+
+    Have ticketing systems, this can save a lot of time because if we ask users to provide the needed information up front, we don't have to waste time and go back and forth.
+
+    Having good documentation can be real time severs.
+*** Planning Future Resource Usage
+If you are dealing with a service that expects to grow in the future, plan ahead, you'll need more resources.
+
+If you need more storage, consider buying a NAS (network attached storage). Migrating storage takes time and it is tricky so plan ahead!
+
+Instead of having the service hosted locally and worrying about all those hardware requirements, you can migrate to the cloud. Although more expensive per month, you are delegating all the future planning and infrastructure to your cloud provider.
+*** Preventing Future Problems
+To prevent problems, monitor the system. The general idea is to have the computers that you care about to send the data to a single location which aggregates all this information. You'll want to be able to see this information yourself and to trigger alerts when a value reaches a threshold.
+
+    If it is a web server, you'll want to know the ration successful web responses and errors.
+    If it is a database server. you'll want to know how many queries have been served over time.
+
+If a problem is not caught on the monitoring system, add a new monitoring and alerts rules that will notify you if it ever happens again.
+
+Remember! report the bug if it's someone else's code or write test to prevent the problem happening again.
+*** More About Preventing Future Breakage
+Problem Domains: describe the complexity of a given problem that one is trying to solve.
+Failure Domains: describe the complexity of a system but instead of describing the various problem a system tries to solve, failure domains describe the various sub-systems which may fail.
+
+". The key to preventing future breakage is to identify, and manage the scope and severity of a failure domain. This may mean redesigning the system in a way that has many smaller failure domains, instead of few large ones. "
+
+**** Useful Links on Failure/Problem Domains
+https://simpleprogrammer.com/understanding-the-problem-domain-is-the-hardest-part-of-programming/
+https://blog.turbonomic.com/blog/on-technology/thinking-like-an-architect-understanding-failure-domains
+https://landing.google.com/sre/sre-book/chapters/effective-troubleshooting/
