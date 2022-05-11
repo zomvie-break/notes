@@ -1,0 +1,208 @@
+#+TITLE: 005 Configuration Management And The Cloud
+
+* Week 1: Automating with Configuration Management
+** Course Introduction
+*** Course Introduction
+In this course we will learn:
+- How to apply automation to manage fleets of computers
+- How to automate deploying new computes
+- How to keep machines updated
+- How to manage large-scale changes
+- And more.
+
+Both for physical machines and virtual machines on the cloud.
+
+What is SRE?
+    Site Reliability Engineering is focused in the reliability and maintainability of large systems. In the process, apply a lot of automation to manage them.
+
+Configuration management: lets us manage the configuration of our computers at scale.
+** Introduction to Automation at Scale
+*** Introduction to Module 1: Automating with Configuration Management
+*** What is Scale?
+Being able to *scale* what we do means that we can keep achieving larger impacts with the same amount of effort. In short, a scalable service is a flexible one.
+
+Adding more computers can be easy or really hard, depending on how the infrastructure is set up.
+
+Automation is an essential tool for keeping up with the infrastructure needs of a growing business.
+*** What is Configuration Management?
+E.g. imagine you want to add a new server, manually setting it up is called unmanaged configuration (OS, applications, configuration files, policies, etc... ).
+
+Managed configuration means using a configuration management system to manage all the computers in the fleet, also known as nodes. Typically, you define a set of rules that have to be applied to the nodes you want to manage and then have a process that ensures that those settings are true on each of the nodes.
+
+At a small scale, unmanaged configuration seems inexpensive. However, adding new services can take a lot of time and when things go wrong (which often happens), it can take a lot of time to get back online.
+
+Using a configuration management, the changes you make to a system or a group of systems are done in a systematic, repeatable way. It also makes making changes efficient and consistent.
+
+Configuration management system can handle with some kind of errors by themselves. E.g. if an user changes a configuration file, the configuration management will let you know and will also restore the file to the state before the user changed it.
+
+Examples of configuration managers: Puppet, Chef, Ansible, CFEngine
+
+    These tools can be used to manage locally hosted infrastructure (bare metal such as laptops and virtual machines). Some also are capable of cloud integration (such as AWS EC2, Microsoft Azure, or Google Cloud platform).
+
+    There are also some platform specific tools like SCCM and Group Policy for Windows.
+
+To make the most out of our configuration management system, use the infrastructure as code paradigm.
+*** What is infrastructure as code?
+When we used a configuration management system, we write rule that describe how the computers in our fleet should be configured. These rules are then executed by the automation, to make the computers match our desired state. This means that we can model the behavior of our IT infrastructure in files that can be processed by automation tools. These files can be tracked in a version control system which is super useful when we need to revert changes.
+
+The paradigm of storing all the configuration for the managed devices in version controlled files is known as infrastructure as code or IaC.
+
+    Infrastructure as code (IaC): When all the configuration necessary to deploy and manage a node in the infrastructure is stored in version control.
+
+The principles of IaC are commonly applied to cloud computing environments where machines are treated like interchangeable resources, instead of individual computers.
+
+Even if there is only one computer, using VCS to track configuration files has advantages such are having the file reviewed by others, rolling back, and quickly set up a new computer if the one in use fails as well as setting up automated tests.
+
+Managing your infrastructure as code means that your fleet of nodes are consistent, versioned, reliable, and repeatable.
+** Introduction to Puppet
+*** What is Puppet?
+Puppet is the current industry standard. It is popular open-source project which is cross platform.
+
+Puppet is usually deployed in a client-server architecture. The client is known as the Puppet Agent and the server is known  as the Puppet Master. The agent sends a list of 'facts' to the Master and the Master then sends a set of 'Rules' that need to be applied to the device.
+
+Example of a Rule:
+
+    class sudo {
+        package { 'sudo':
+            ensure => present,
+            }
+    }
+
+This block is saying that the package named 'sudo' has to be present wherever the rule is applied, an if it is not found, then install it.
+
+Puppet will determine the type of OS and use the right tool to install the package. However, for windows, we'll need to add an extra attribute to our rule stating where the installer file is located on the local disk or a network mounted resource or add a an extra 'Chocolately' provider to Puppet.
+
+Puppet can also add, remove, modify configuration files stored on the system  or change registry entries on windows. We can also enable, disable, start, or stop the services that run on our computers.
+
+We can also configure crone jobs or schedule tasks, add, remove, or modify users and groups or even execute external commands.
+*** Puppet Resources
+Resources: The basic unit for modeling the configuration that we want to manage.
+
+    In other words, each resource specifies one configuration that we are trying to manage (like a service, package, or a file)
+
+File Resource Example 1:
+
+    class sysctl {
+        # Make sure the dictionary exists, some distros do not have it
+        file { '/etc/sysctl.d':
+            ensure => directory
+        }
+    }
+
+This block ensures that the directory exists.
+
+File Resource Example 2:
+
+    class timezone {
+    file { '/etc/timezone':
+        ensure => file,
+        content => "UTC\n",
+        replace => true,
+        }
+    }
+
+This block configures the file 'timezone'. Here, the resource configuration states the 'timezone' needs to be a file, set the contents of the file to UTC time zone, and set 'replace' to true meaning that if there is an existing file with that name, it will replace the file.
+
+You can also change permissions, file owners, or modification time.
+
+When declaring rules, we are stating the desired state of the resource in the system. The puppet Agent turns this desired state into reality using providers.
+
+The provider used will depend on the resource defined and the environment where the agent is running. Puppet will normally detect this automatically.
+*** Puppet Classes
+Classes are used to collect the resources that are needed to achieve a goal in a single place. E.g. you could have a class that installs a packages, modifies its configuration file, and starts the service provided by that package.
+
+    E.g. a class with three resources, all related to 'NTP' (Network Time Protocol), the mechanism our computers use to synchronize the clocks.
+
+        class ntp {
+            package { 'ntp':
+                ensure => latest,
+            }
+            file { '/etc/ntp.conf':
+                source => 'puppet://modules/ntp/ntp.conf'
+                replace => true,
+                }
+            service {'ntp':
+                enable => true,
+                ensure => running,
+                }
+        }
+
+    The class ensures that the package is always updated to the latest version, the contents of the configuration file is specified and set to replace any existing file, and to ensure that the service is running.
+
+    By grouping related resources into a single class, we get the advantages of ensuring efficiency and convenience for future changes.
+*** puppet docs
+https://puppet.com/docs/puppet/7/lang_resources.html
+** The Building Blocks of Configuration Management
+*** What are domain-specific languages? DSL
+java, python, go are general purposes languages.
+
+Domain specific language: A programming language that's more limited in scope.
+
+The DSL in puppet is limited to operations related to when and how to apply configuration management rules. Puppet's DSL includes variables, conditional statements, and functions.
+
+Puppet's facts: variables that represent the characteristics of the system.
+
+    There are many built-in facts into puppet such as facts to store the node OS, IP address, memory available, etc...
+
+    E.g. Facts usage ('smartmontools is a package used for monitoring the state of hard drives using 'smart' command' which does not make sense to have in virtual machines)
+
+        if $facts['is_virtual'] {
+            package {'smartmontools':
+                ensure => purged,
+            }
+        } else {
+            package{'smartmontools':
+                ensure => installed,
+            }
+        }
+
+
+        The '$facts' variable is a puppet's DSL hash (which is equivalent to a dictionary in python).
+*** The Driving Principles of Configuration Management
+
+Puppet uses as declarative language, because we declare the state that we want to achieve rather than the steps to get there.
+
+Python and C are procedural languages because we write out the procedure that the computer needs to follow to reach our desired goal.
+
+Operations in configuration management should be idempotent. An *idempotent* action can be performed over and over again without changing the system after the first time action was performed, and with no unintended side effects.
+
+    If a script is idempotent, it means it can fail halfway through its task and be run again without problematic consequences.
+
+        Most puppet resources provide idempotent actions.
+
+            A notable exception is the 'exec' resource which runs commands for us and these commands can modify the system each time it is executed. E.g. moving a file, this will only work once and yield a puppet error otherwise. There is a workaround:
+
+                exec { 'move example file':
+                    command => 'mv /home/user/example.txt /home/user/Desktop',
+                    onlyif => 'test -e /home/user/example.txt'
+                }
+
+            This is now a idempotent action because it will only move the file if 'onlyif' is true (i.e. test that the file we are trying to move exists in the directory).
+
+
+Test and repair paradigm: Meaning that actions are taken only when they are necessary to achieve a goal. For example, only install a package if it hasn't been installed before.
+
+Poppet is stateless, each puppet run is independent of each previous puppet run. Puppet does not save the state between runs of the agents.
+*** More Information About Configuration Management
+http://radar.oreilly.com/2015/04/the-puppet-design-philosophy.html
+*** Assignment qwiklabs
+/etc/profile.d/ is a directory used to store scripts which will perform startup tasks, including setting up a user's own environment variables.
+
+PATH variable: environment variable that contains an ordered list of paths that Linux will search for executables when running a command. This is useful because it means we do not have to specify the absolute path for each command we want to run.
+
+    The PATH variable typically contains a few different paths which are separated bY colons.
+
+**** tip
+To append a path directory to the PATH environment variable using puppet, you can use
+
+class profile {
+    file { '/etc/profile.d/append-path.sh':
+        owner => 'root',
+        group => 'root',
+        mode => '0644',
+        content => "PATH=\$PATH:/java/bin\n"
+    }
+}
+
+To trigger a manual run of the puppet agent by running:
+'$ sudo puppet agent -v --test'
