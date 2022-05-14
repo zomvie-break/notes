@@ -206,3 +206,211 @@ class profile {
 
 To trigger a manual run of the puppet agent by running:
 '$ sudo puppet agent -v --test'
+* Week 2: Deploying Puppet
+** Deploying Puppet Locally
+*** Intro to Module 2: Deploying Puppet
+We will install puppet locally and set up a test set-up. Also, we'll see how to set up a client-server set-up with puppet clients connecting and authenticating to the Puppet server.
+*** Applying rules locally
+Puppet is usually deployed in a client-server architecture but that is not the only way we can use puppet. We can use it as a stand alone command line application. This can be the preferred configuration for complex setups where connecting to a master is no longer the best approach.
+**** to install puppet
+just intall puppet using the OS package manager such as pacman or apt. E.g. '$ sudo pacman -S puppet'
+**** Example usage, debugging tools
+You can create the most simple file, in this case you want to use ensure that some debugging tools are available at all the nodes. The file that stores this configuration (rules) is called manifest and has extension .pp, for example 'tools.pp'
+
+    Example 'tools.pp':
+
+        package { 'htop':
+            ensure => present,
+        }
+
+    This file installs htop if it is not installed already. To apply the rules, run:
+    '$ sudo puppet apply -v tools.pp'
+        The '-v' flag runs puppet in verbose mode so that shows text messages to the terminal.
+**** Puppet's catalog
+After loading all facts for a computer, the server calculates which rules actually need to be applied. For example, if a packet should only be installed when a certain condition is met, this condition is evaluated on the server side based on the gathered facts.
+
+The catalog is the list of rules that are generated for one specific computer once the server has evaluated all variables, conditionals, and functions.
+*** Managing Resource Relationships
+Puppet's manifests usually include a bunch of resources that are related to each other. You cannot start a service without the configuration, and you cannot change the configuration without the package installed. Puppet manages this resource relationships.
+
+Example:
+
+    class ntp {
+        package { 'ntp':
+            ensure => latest,
+        }
+        file { '/etc/ntp.conf':
+            source => '/home/user/ntp.conf',
+            replace => true,
+            require => Package['ntp'],
+            notify => Service['ntp'],
+        }
+        service{ 'ntp':
+            enable => true,
+            ensure => running,
+            require => File['/etc/ntp.conf'],
+        }
+    }
+    include ntp
+
+In this example, resource types are written in lowercase whereas relationships are written with an uppercase for the first letter of the resource.
+
+We write resource types in lowercase when declaring them, but capitalize them when referring to them from another resource's attribute.
+
+In this example, there is also a call to include 'ntp' at the end of the file. Usually, the class is defined in one file and include it in another one.
+*** Organizing Your Puppet Modules
+Module: A collection of manifests and associated data.
+
+You want to organzine related the manifests under a sensible topic name. E.g you can have a module dedicated to monitor the computer's health, another for setting up the network stack, and yet another one for configuring a web serving application.
+
+All manifest get stored in a directory called manifests, the rest of the data is stored in different directories depending on what it does. E.g. files such as 'ntp.conf' are stored in the 'files' directory. Another example is the 'templates' directory which stores files that are preprocessed before being copied to the client machines. These templates can include values that get replaced after calculating the manifests, or sections that are only present if certain conditions are valid.
+**** Summary
+So basically, a module is a directory (within the modules directory) which has a manifest, files, templates, etc directories. In it, there should be a 'init.pp' file in the 'manifest' directory and it should define a class with the same name as the module you are creating. 'init.pp' needs to be present since it is the first file that puppet reads when a module gets included.
+
+Any files that your rules use should be stored in the 'files' directory or if they need to be preprocessed, in the 'templates' directory.
+
+These modules can be shared. They can be installed through the OS package manager like this: (in this case, ubuntu) '$ sudo apt install puppet-module-puppetlabs-apache'
+
+    To include a module from a manifest, you can create a file such as 'webserver.pp' like this:
+
+        include ::apache
+
+    The two columns before the 'apache' lets puppet know that this is a global module named 'apache'.
+
+    Finally, to apply the manifest, use the same command as last time:
+        '$ sudo puppet apply -v webserver.pp'
+
+**** tip
+use '$ tree modules/' to print the structure of the directory 'modules'
+*** More Information About Deploying Puppet Locally
+The Puppet language style guide: https://puppet.com/docs/puppet/7/style_guide.html
+Installing Puppet Server: https://puppet.com/docs/puppet/7/server/install_from_packages.html
+** Deploying Puppet to Clients
+*** Puppet Nodes
+When managing a lot of computers, you might want to have certain rules apply to all of the computers, and some other rules just to a subset of those computers.
+
+In puppet terminology, a node is any system where we can run a puppet agent (e.g. a physical work station, a server, a virtual machine, or even a network router).
+
+For example, a rule definition for all the nodes:
+
+    node default {
+        class { 'sudo': }
+        class { 'ntp':
+                servers => ['ntp1.example.com', 'ntp2.example.com']
+        }
+    }
+
+On the other hand, if you want some rules to apply to only certain nodes you can use something like this:
+
+    node webserver.example.com {
+        class {'sudo': }
+        class { 'ntp':
+                servers => ['ntp1.example.com', 'ntp2.example.com']
+        }
+        class { 'apache': }
+    }
+
+In this case, the node is identified using a FQDNs (Fully Qualified Domain Name) which is 'webserver.example.com'.
+
+When a node requests which rules it should apply, puppet will look at the node definitions, figure out which one matches the node's FQDN and then give only those rules.
+
+*Node definition usually happens in the 'site.pp' file*
+*** Puppet's Certificate Infrastructure
+puppets internal workflow:
+1. puppet agent sends 'facts' to the puppet master.
+2. The puppet master (server) then processes the manifests, generates the corresponding catalog (rules to be applied to that node).
+3. The puppet master then sends it back to the puppet agent (client).
+4. The puppet agent applies the changes locally.
+
+How does puppet verify the nodes?
+puppet uses public ket infrastructure, or PKI, to establish a secure connection between the server and the clients. There are a bunch of different PKI technologies but puppet uses 'secure socket layer or SSL' (same technology used for encrypting transmissions over HTTPS).
+
+    Basically, all machines have two keys related to each other: private key and public key. The private key is secret, only known by that machine. The public key is shared with other machines involved. The sender uses its private key to sign messages and the receivers use the public key to validate the message.
+
+    How do machines know which keys to trust?
+
+        Certificate Authority (CA) verifies the identity of the machine and then creates a certificate stating that the public key goes with that machine.
+
+        Puppet comes with its own CA but you can also use another CA.
+
+When a puppet agent connects with the puppet master for the first time, the puppet master asks for the certificate (made by the CA) and if it can verify the node's identity, it creates a certificate for that node. This way, when a node picks up this certificate, it knows it can trust that puppet master and that the node can use the certificate to identify itself when requesting a catalog.
+
+Why care about the security?
+Puppet rules can hold sensitive information that you do not want it to get into the wrong hands. But also to makes sure that the webserver is actually the webserver and not just a rouge machine with the same name. If you are using puppet for managing tests machines, you can ask puppet to automatically sign all request but you should never do this on real computers with real users.
+
+*Always authenticate your machines*
+
+You can verify the identities of the machines automatically through a script. One way to do this is by copying a unique piece of information into the machines when they get provisioned and then use this pre-shared data as part of the certificate request.
+*** Setting up Puppet Clients and Servers
+For automatically signing puppet certificate request you can use this:
+'$ sudo puppet config --section master set autosign true'
+*but only use this when testing, never do this for real computers.* For real computers, you have to manually sign the requests or implement a proper validating script.
+
+On the machine that is going to be a puppet agent node:
+1. install puppet
+2. run '$ sudo puppet config set server ubuntu.example.com' to set the server.
+3. test using '$ sudo puppet agent -v --test'. This runs a test.
+   This should create a SSL key, create a certificate request after reading a bunch of info, then shows us the fingerprint of the certificate request.
+    This certificate request could be used to verify that the request and the server matches the one generated on the machine.
+4. The certificate is generated on the puppet master.
+5. The puppet agent stores the certificate locally.
+6. The puppet agent retrieves the catalog and applies it.
+
+You need to create a file on the 'production environment' like this: '/etc/puppet/code/environments/production/manifests/site.pp':
+
+    node webserver.exmaple.com {
+        class {'apache':}
+    }
+    node default {}
+
+This is a node definition for the webserver and the default nodes. You can then apply this manifest at the webserver like this:
+    From the puppet agent '$ sudo puppet agent -v --test'
+        This should install apache and other services.
+
+To keep puppet running constantly on the puppet agent, use systemctl.
+    '$ sudo systemctl enable puppet'  This will start the puppet service whenever the computer starts up.
+    '$ sudo systemctl start puppet' This will start the service now (similar to 'systemctl enable --now puppet')
+*** More Information about Deploying Puppet to Clients
+Info about SSL on puppet: https://www.masterzen.fr/2010/11/14/puppet-ssl-explained/
+** Updating Deployments
+*** Modifying and Testing Manifests
+When changing a 'manifest', puppet applies these changes to the corresponding nodes.
+
+Use the 'puppet parser validate' command that checks that the syntax of the manifest is correct.
+
+Apply the changes using the '--noop' flag (NO OPerations) which simulates what puppet would do without actually doing it. This way, you can take a look at the list of actions that it would take and check that they're exactly what you wanted puppet to do. Another approach is to have a tests machines that are used exclusively for testing out changes. However, this is manual work and prone to mistakes.
+
+You can test the manifest automatically using 'r-spec'. In these tests, we can set the 'facts' involved to the values that we want and check that the catalog comes out the way we wanted.
+
+Here is a test example:
+
+    describe 'gksu', :type => :class do
+        let (:facts) { { 'is_virtual' => 'false' } }
+        it {should contain_package('gksu').with_ensure('latest')}
+    end
+
+
+We can write a lot of these tests and run them all whenever there is a change to the rules. This ensures that the rules stay valid and that the new changes didn't break the old rules.
+
+To check that the rules have the effect that we want, we can use a set of test machines where we first apply the catalog and then use scripts to check that the machines are behaving correctly.
+*** Safely Rolling Out Changes and Validating Them
+Even if the test machine works fine, it does not mean that the changes will work correctly on the machines running on production.
+
+Production: The parts of the infrastructure where the service is executed and served to its users.
+
+To roll out changes safely, first run them through a *test environment*. This environment should be one or two machines with the exact same configuration as the production environment.
+
+Puppet allows for environment configurations. This way, you can completely isolate the configuration of a machine that the agent sees. This is not just for the modules on each node but also for the version of the module (e.g. test a newer version of the apache module). You can have a development environment (for IT specialists), a test environment for a specific feature, production environment, etc...
+
+Pushing changes to the production environment at the same time is usually not a good idea. There is almost always a special case that we do not consider and has
+the potential to take the machines offline. It is a better idea to roll out the change in small batches.
+
+    You could have machines marked as early adopters or 'canaries'. These canaries are used to detect possible issues before they reach the other computers. If there is a problem, the damage is contain to only a subset of users.
+
+Do not apply six months worth of changes at once. This will make it difficult to debug. Apply changes every one or two weeks.
+
+*** More Information About Updating Deployments
+Write puppet tests: https://rspec-puppet.com/tutorial/
+Check that your puppet manifest conform to the style guide: http://puppet-lint.com/
+** Module Review
+Use version control systems to track the changes in the 'infrastructure as code' files.
