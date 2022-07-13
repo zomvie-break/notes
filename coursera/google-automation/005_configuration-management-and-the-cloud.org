@@ -414,3 +414,168 @@ Write puppet tests: https://rspec-puppet.com/tutorial/
 Check that your puppet manifest conform to the style guide: http://puppet-lint.com/
 ** Module Review
 Use version control systems to track the changes in the 'infrastructure as code' files.
+* Week 3: Automation in the Cloud
+** Cloud Computing
+*** Intro to Module 3: Automation in the Cloud
+*** Cloud Services Overview
+A service is running in the cloud if the service is running somewhere else, either a data center or in other remote servers that we can reach over the internet.
+
+Cloud providers offer a bunch of services. Among them, one of the most used services is Software-as-a-Service.
+
+Software-as-a-Service (SaaS): When a Cloud provider delivers an entire application or program to the customer.
+
+Platform-as-a-Service: (PaaS): When a Cloud provider offers a preconfigured platform to the customer.
+
+Infrastructure-as-a-Service (IaaS): When a Cloud provider supplies only the bare-bones computing experience. (basically a VM with internet) (Amazon's EC2, Google Compute Engine, Microsoft Azure Compute)
+
+When using Cloud resources, you need to consider regions. A region is a geographical location containing a number of data centers. Regions contain zones, and zones can have one or more data centers. You want to use a zone close to your users.
+*** Scaling in the Cloud
+It takes a lot of time to scale up or down on premises servers.
+
+Capacity: How much the service can deliver.
+
+Capacity is tied to the number and size of servers involved. Our capacity needs to change over time.
+
+
+To scale _horizontally_, we add more nodes into the pool that's part of a specific service. Add more servers to increase your capacity.
+
+To scale _vertically_, we make the nodes bigger. For example, change the 10GB memory to 100GB memory, upgrade the CPU and/or GPU.
+
+Automatic scaling: The service offered by the Cloud provider will use metrics to automatically increase or decrease the capacity of the system.
+
+Manual scaling: Changes are controlled by humans instead of software.
+
+When using manual scaling, a sudden increase in demand can cause slow performance to a full outage.
+*** Evaluating the Cloud
+On premises infrastructure, you have the control of everything. On the other hand, while using Cloud services, you give up some of that control to the cloud provider.
+
+When choosing SaaS, we are basically giving the provider complete control. We get a limited amount of settings. But we do not have to worry about making the system work. However, there is a limited amount of applications offered in such a prepackaged way. Ideal if you just want to focus on the software.
+
+When choosing PaaS, we are in charge of the code but not in charge of running the application.
+
+When choosing IaaS, we get to keep a high level of control. We get to choose the OS and applications installed on the virtual machines. We still get limited network configuration or limited services availability. If something does break, you might need to get support from the vendor to fix the problem.
+
+Trade off between (good) not maintaining the physical machines and (bad) loosing control over hardware, network, and overall infrastructure.
+
+Another bad aspect of cloud services is that you do not know what type of security measuers are being put in place. Make sure to check how they  secure the instances and your data. There are a bunch of certificates out there such as SOC 1, ISO 27001, etc...
+
+Even if the cloud providers take security measures, that does not mean that that's it. Cloud users are still responsible for things such as credentials and firewalls. Other things worth mentioning are multi-factor authentication, encrypted file systems, or public key cryptography.
+*** Migrating to the Cloud
+When using IaaS, we deploy the services using virtual machines running on the Cloud Provider's infrastructure.
+
+IaaS is useful for administrators since you can use 'lift-and-shift'. The term comes from physically lifting and shifting the servers to a new location. When migrating to the cloud, you migrate the server to a virtual machine running in the cloud.
+
+If you are already using configuration managers to maintain the server, moving to the cloud can be pretty easy. You just apply the same config to the VMs on the cloud (IaaS).
+
+Using PaaS is a great alternative when you have a specific infrastructure requirement but you do not want to get involved in the specifics of the platform. E.g. an SQL database: you do not have to worry about having the right disks attached, configuring the database, or any other task related to the machine set-up, just focus on using the database. Another example is a web app: you don't need to care about the framework. This can speed development since developers do not need to manage the platform and can focus on writing code.
+
+PaaS examples include Amazon Elastic Beanstalk, Microsoft App Service, and Google App Engine. Although they are similar, migrating between platforms require some code changes.
+
+Containers: Applications that are packed together with their configuration and dependencies. This allows the applications to run in the same way no matter the environment used to run them. In other words, you can run the app on the on-premises server, a cloud provider, or another cloud provider. The application will run in the same way.
+**** Types of clouds
+public cloud: The cloud services provided to you by a third party.
+private cloud: When your company owns the services and the rest of your infrastructure, whether that's on-site or in a remote data center.
+hybrid cloud: A mixture of both public and private clouds. Some services are run on a private cloud whereas others are run in public cloud. The secret to success is have a good integration.
+multi-cloud: A mixture of public and/or private clouds across vendors.
+** Managing Instances In The Cloud
+*** spinning up VMs in the Cloud
+All cloud provides provide you a console that lets you manage the services that you are using.
+You'll be asked to choose a zone/region where your instance will be running. You also need to choose the characteristics of the virtual machine (such as CPU, ram, disk, etc..). You'll also need to choose which OS you'll be running.
+
+You can use UI in the web app or use the CLI to manage your VMs. Using the CLI lets you create, modify, and delete VMs using scripts. This is great for automation. You can also automate the contents of the VM.
+
+Reference images: Store the contents of a machine in a reusable format.
+Templating: The process of capturing all of the systems configuration to let us create VMs in a repeatable way.
+
+Reference images' format depend on the vendor but often, the result is a file called 'disk image'.
+
+Disk image: A snapshot of a virtual machine's disk at a given point in time.
+
+The disk image copy migh not be an exact copy of the original machine because some machine data changes (like the hostname and the IP address).
+
+    This can be very useful if you need a fleet of 10k machines with identical software.
+*** Creating a New VM using the GCP Web UI
+console.cloud.google.com
+
+To connect to web server on the VM, enable 'Allow HTTP traffic'.
+
+**** Cool thingy
+type '$ curl wttr.in' to check the weather in your current location.
+https://github.com/chubin/wttr.in
+*** Customizing VMs in GCP
+You can change the services in the VM so that you can start a web application automatically.
+    The default location of systemd service files on Linux is etc/systemd/system/
+
+You can install puppet as a configuration management software.
+**** Tip
+'$ ps ax | grep hello'
+lists all the running processes and searches for 'hello'
+*** Templating a Customized VM
+You can use the previous configured VM to create a template (this VM has puppet and a web server already configured).
+    1. Stop the VM's disk on the control panel.
+    2. Click on the instance's name.
+    3. Create an image using 'create image'
+    4. Configure the settings.
+    5. Navigate to Instance templates and create a new one.
+    6. Navigate to your customized images and select the one you want.
+    7. Configure the instance settings.
+
+You can now create instances using this image. You could use the UI on console.cloud.google.com or uyse the gcloud CLI.
+
+If you need to create a lot of VMs using an image, using CLI can be faster. For example, creating 5 new VMs using a template called 'webserver-template' you can use the following code:
+
+    'gcloud compute instances create --source-instance-template webserver-template ws1 ws2 ws3 ws4 ws5'
+
+        This will create 5 new VMs called ws1 .. ws5.
+*** Managing VMs in GCP
+https://cloud.google.com/compute/docs/quickstart-linux
+
+https://cloud.google.com/compute/docs/instances/create-vm-from-instance-template
+
+https://cloud.google.com/sdk/docs
+** Automating Cloud Deployments
+*** Cloud Scale Deployments
+Set up the services so that we can easily increase their capacity by adding more nodes to the pool. These nodes could be VMs, containers,  specific applications providing one service.
+
+For a service with multiple instances, we can use a load balancer.
+
+Load balancer: ensures that each node receives a balanced number of requests.
+    When a request comes in, the load balancer picks a node to serve the response.
+
+Load balancer strategies:
+    Simplest load balancer is to give each node one request (called round robin)
+    Another more complex strategy is to select the node closest to the requester or selecting the node with the least current load.
+        This approach turns on nodes when there's more demand and shut some nodes down when the demand falls. This is call autoscaling.
+
+Autoscaling: Allows the service to increase or reduce capacity as needed, while the service owner only pays for the cost of the machines that are in use at any given time.
+
+        When the nodes shut down, their disk will also disappear and should be considered short-lived.
+
+        If you need data persistence, you'll need to create separated storage resources to hold that data and connect that storage to the nodes. That is why cloud services are typically connected to a database, also in the cloud.
+
+When accessing a website, the browser retrieves the IP address of the website. This IP specifies a specific computer: the entry point for the site (commonly, there are multiple entry sites for a single website, allowing the site to stay up even if one of them fails and allowing the user to connect to the closest entry point to reduce latency). For small apps, this entry point would be the web server. For large applications, where speed and availability, there will be a couple of layers between the entry point and the web server. The first layer is the web caching servers with load balancers to distribute requests between them. One popular application for this caching is called *varnish* but *nginx* also has this functionality. There are providers that do web caching as a service such as cloudflare and fastly. For cache of databases, there are services such as meemcached and redis.
+*** What is orchestration?
+Orchestration: The automated configuration and coordination of complex IT systems and services.
+
+The configuration of the overall system needs to be automatically repeatable. CLI and UI of clouds systems usually do not allow this. They normally use application programming interface or API that lets us interact with the cloud infrastructure directly from our scripts.
+
+In Cloud provider's APIs, they typically let you handle the configuration that you want directly from your scrips or programs without having to call a separate command. This gives us extra flexibility which is extra useful when dealing with complex systems.
+
+We should set up monitoring and alerting rules so that we know if there is an issue before the end users are affected.
+*** Cloud infrastructure as Code
+Storing our infrastructure in code like format allows us to create repeatable infrastructure, and using version control allows us to keep a history of what we've done and rollback mistakes. Cloud infrastructure is similar but the storing might be a little bit different. Cloud provides have tools for managing resources as code (e.g. Amazon's Cloud Formation, Google's Cloud Deployment Manager, Microsoft's Azure Resource Manager, OpenStak's Heat Orchestration Templates).
+
+Terrform uses its own Domain-specific language. Terraform knows how to interact with different cloud providers and automatic vendors. I.e. deploy terraform rules to deploy the service on one Cloud provider and use very similar rules to deploy to another Cloud provider.
+
+    This way, you do not have to know every cloud providers APIs!
+
+Puppet is for the specif VM (choose package and configuration) whereas Terraform is for defining things such as VM resources and where to deploy those VMs (specific APIs for each Cloud Provider).
+
+Puppet can also be used (with plug-ins) for interacting with the cloud providers.
+
+**** Dealing with nodes in the Cloud
+Long-lived nodes: contents need to be periodically updated.
+    E.g. company's internal mail server, or file sharing server.
+Short-lived nodes: updates are done by deleting old instances and creating new ones.
+
+Puppet can be used to update the long-lived nodes while running but also to update the short-lived nodes by starting them with a new configuration.
