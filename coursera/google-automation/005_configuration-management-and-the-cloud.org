@@ -579,3 +579,121 @@ Long-lived nodes: contents need to be periodically updated.
 Short-lived nodes: updates are done by deleting old instances and creating new ones.
 
 Puppet can be used to update the long-lived nodes while running but also to update the short-lived nodes by starting them with a new configuration.
+* Week 4: Managing Cloud Instances at Scale
+** Building Software for the Cloud
+*** Storing Data in The Cloud
+Traditional storage technology : Block storage.
+New storage technology: Object or Blob storage.
+
+Block storage: This type of storage closely resembles the physical storage (physical storage). On virtual machines, the OS will create and manage a file system on top of the block storage.
+
+This storage can be persistent or ephemeral.
+
+Persistent storage: Used for instances that are long lived and need to keep data across reboots and upgrades.
+
+Ephemeral storage: Used for instances that are only temporary and only need to keep local data while they are running.
+
+If you are looking to share data across instances, look into shared file system solutions. This allows you to access data through network file system protocols like NFS and CIFS. This allows you to connect multiple instances or containers on the same file system without programming.
+
+The block storage and shared file system is great for managing servers that need to access files.
+
+However, if you need to store application data, you might want to take a  look into blob or object storage.
+
+Object storage: Lets you place and retrieve objects in a storage bucket. (Blob: Binary Large OBject. Blobs, objects can be photos or cat videos.)
+
+To interact with the storage bucket, you need to use an API or special utilities.
+
+There are basically two database as a service flavors: SQL and NoSQL.
+
+Cloud providers will charge you depending on the specs:
+Throughput: The amount of data that you can read and write in a given amount of time.
+IOPS (input/output operations per second): Measures how many reads and writes you can do in one second, no matter how much data you're accessing.
+Latency: The amount of time it takes to complete a read or write operation.
+
+Hot data: Data accessed frequently and stored in hot storage.
+Cold data: Accessed infrequently and stored in cold storage.
+*** Load Balancing
+Once we set up replicated machines, we'll want to distribute the requests across instances.
+
+Balancing technique: Round-Robin DNS.
+    The URL is translate to an IP address using the DNS protocol (or Domain Name System). When using Round-Robin DNS, each client asking for the translation will get a group of IP addresses in different order. The client will try to access the first one, if this one fails, it will try the next one and so on... This is easy to configure (just make sure that the IPs of all machines in the pool are configured in your DNS server). However, there are a few downsides: you cannot choose which addresses get picked by the clients, DNS records are cached by the clients and other servers so if you need to change the IPs for the instances, you'll have to wait until all the DNS records that were cached by the clients expire.
+
+There is a better way. Use a dedicated load balancer server which assigns the servers to the clients based on predefined rules. But you might want to have sticky sessions. By using a dedicated load balancer server, you can simply add/remove VMs and just let the load balancer server know. You could also use autoscaling so that the load balancer adds/removes VMs automatically.
+
+Sticky sessions: All request from the same client always go to the same back-end server. (Only use it when really needed)
+
+A lot of cloud providers have GeoIP or GeoDNS to assign servers to the clients based on their physical location so that the clients always get the nearest server.
+
+Content Delivery Networks (CDNs): Make up a network of physical hosts that are geographically located as close to the end users as possible. (They cache data from the server whenever a user makes a request so that another user in that area does not have to wait as long).
+*** Change Management
+Usually, when something goes wrong is because something changed. That is why we need to make those changes in a controlled and safe way. To do so we need to make sure our changes are well tested (unit tests and integration tests). Ideally, the CI (continuous integration) runs even changes that are being reviewed so that the end user does not see any bugs. Once the change is committed, the CI will test the resulting code. CD (continuous deployment) lets you control the deployment with rules (e.g. only deploy the new builds when they pass all the tests).
+
+Again, ideally, you should have a test environment separate from the production environment so that you push recent changes to the test environment (environment means everything needed to run the service, including machines, networks, the deployed code, the configuration management, the application configuration, and the customer data).
+
+A/B testing: Some requests are served using one set of code (A) and other requests are served using a different set of code and configuration (B).
+*** Understanding Limitations
+Sometimes things fail, other times there are limitations such as quotas or limits (chosen at the Cloud provider).
+Rate limits: Prevent one service from overloading the whole system. E.g. limit an expensive API call to 1 per seconds.
+Utilization limits: Cap the total amount of a certain resource that you can provide. E.g. limit the amount of VMs you can deploy because they can be very expensive!
+** Monitoring and Alerting
+*** Getting Started with Monitoring
+Response codes in the 500 range mean something went wrong with the server.
+Response codes in the 400 range mean there was a client-side problem with the request.
+
+E.g. you run a e-commerce site and you want to know how many purchases were completed and how many failed. To do this, you can store the data in a monitoring system such as AWS Cloudwatch, Google Stack Driver, Azure Metrics provided by cloud providers or others such as Prometheus, Data Dog, or Nagios can be used across vendors. You can create dashboards using these tools. Only store the metrics you care about! Space costs money!
+
+Whitebox monitoring: Checks the behavior of the system from the inside. E.g. CPU usage, RAM usage, etc..
+Blackbox monitoring: Checks the behavior of the system from the outside. E.g. making a request and see if the response matches the expected response.
+
+We do not have to watch the dashboard the whole day because we can set up alerting rules.
+*** Getting Alerts When Things Go Wrong
+The easiest way to do this is to run a program periodically that checks the health of the system and emails the system administrator if something is wrong. In linux systems, we can use *cron* which is a tool to run scheduled jobs to run a python script.
+
+When using a monitoring system, you can configure the system to periodically check the metrics and raise an alert if a rule applies. E.g. if the application is using 10gb of ram, or a very long queue.
+
+You can divide alerts into two categories: page level alert (really urgent and critical alerts) and non-page alert (not so important and can be dealt with in an non-urgent fashion).
+*** Service-Level Objectives
+Service-Level Objectives (SLOs): Pre-established performance goals for a specific service.
+
+SLOs need to be measurable meaning that there should be a metric to check if the performance meets the objectives or not. E.g. a service needs to be 99% available per year (i.e. means that 3 days per year of down time). E.g. 90% of the request should return within 5 seconds.
+
+99% availability is called two-nines. 99.9% availability is called three-nines. 99.999% availability is called five-nines availability. And so on...
+
+Service-Level Agreement (SLA): A commitment between a provider and a client.
+
+If SLAs are unfulfilled, there might be serious consequences. Whereas SLOs are more of an internal metric.
+
+Error budget: the amount of time you get before you unfulfill the SLOs (E.g. for 99.9% availability there is an error budget of 0.1% of down time .)
+*** Basic Monitoring in GCP
+
+Use the monitoring tool provided by Google Cloud, i.e. Stackdriver.
+
+Generally speaking, you'll want to set up the alerting condition to go off whenever there is an event that fulfills a condition for 1 minute, 5 minutes, 10 minutes, etc.. You do not really need to concern yourself with spikes of a few seconds in length.
+**** tip
+in order to bring a program that is running in the background, you can use the command '$ fg'.
+*** Troubleshooting and Debugging
+**** What to Do When You Can't Be Physically There
+If you have infrastructure-as-code and something goes wrong, you can deploy new instances. Also, if something does not boot, you could snapshot the troublesome machine and mount the image in a healthy machine to see what's wrong.
+
+Try to isolate the faulty behavior. Set up a testing environment. Take a look at the logs. Some cloud providers gather all logs on a specific location.
+**** Identify Where the Failure Is Coming From
+It is hard to diagnose where the failure is coming from: from your application or from the cloud provider infrastructure. As always, try to isolate the failure. For example, change the geographical area of the service, change the same system in another machine type. Make sure you can rollback individual changes, this way, you can also identify the problem by removing every change until you find the culprit.
+
+Containers: Packaged applications that are shipped together with their libraries and dependencies.
+
+    Something cool about containers is that you can deploy the same container in your in-premises server, to your workstation, or to the cloud. Using containers you can check if the failure is on the cloud provider service by deploying the container somewhere else.
+
+Ideally, you want to have many containers, each dedicated for a specific job of the application and have very good logs for all the containers.
+**** Recovering from Failure
+To have a reliable service, it is important to have a way to be get it up and running as quickly as possible.
+
+If you store any kind of data, it is important to regularly back up that data and to check that the back up service works as intended by performing restores.
+
+If you follow infrastructure-as-code practices, you already have a backup but getting things up and running might take a while. You might want to consider having secondary instances of the services (so that, in case of a failure in the primary instances, you simple tell the DNS server or the load balancer to direct the traffic somewhere else).
+
+Consider running drills so that you can try the documentation to get the service back up and running.
+
+So consieder the following:
+- Having multiple points of redundancy.
+- Having a well-documented disaster recovery plan.
+- Having automatic backups
